@@ -1,4 +1,5 @@
 /*
+ *   Copyright (C) 2019 by Patrick Maier DK5MP
  *   Copyright (C) 2015,2016,2017,2018 by Jonathan Naylor G4KLX
  *   Copyright (C) 2015 by Jim Mclaughlin KI6ZUM
  *   Copyright (C) 2016 by Colin Durbridge G4EML
