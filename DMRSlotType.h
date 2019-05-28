@@ -1,4 +1,5 @@
 /*
+ *   Copyright (C) 2019 by Patrick Maier DK5MP
  *   Copyright (C) 2015 by Jonathan Naylor G4KLX
  *
  *   This program is free software; you can redistribute it and/or modify
