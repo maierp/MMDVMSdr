@@ -20,6 +20,13 @@ void CSDR::setStreamState(bool isEnabled)
 	}
 }
 
+int CSDR::readStreamStatus(int& flags)
+{
+	size_t chanMask(0);
+	long long timeNs(0);
+	return m_device->readStreamStatus(m_stream, chanMask, flags, timeNs);
+}
+
 void CSDR::write(int16_t* symbols, uint16_t length)
 {
 	int numChans(1);
@@ -60,6 +67,14 @@ void CSDR::write(int16_t* symbols, uint16_t length)
 			{
 				m_sin_phase += 2 * M_PI;
 			}
+			//m_x.real(m_fullScale * std::sin(m_sin_phase));
+			//m_x.imag(m_fullScale* std::cos(m_sin_phase));
+			//
+			//firfilt_crcf_push(m_rrc_filter_obj, m_x);
+			//firfilt_crcf_execute(m_rrc_filter_obj, &m_y);
+			//buffMem[0][(j * 255 * 2) + (2 * i)] = m_y.real();
+			//buffMem[0][(j * 255 * 2) + (2 * i) + 1] = m_y.imag();
+
 			buffMem[0][(j * 255 * 2) + (2 * i)] = m_fullScale * std::sin(m_sin_phase);
 			buffMem[0][(j * 255 * 2) + (2 * i) + 1] = m_fullScale * std::cos(m_sin_phase);
 		}
@@ -104,6 +119,13 @@ CSDR::CSDR() :
 		std::cout << "SDR: Format:" << m_format << " FullScale:" << m_fullScale << std::endl;
 		setStreamState(true);
 		setStreamState(false);
+
+		int filter_len(2 * 255 * 4 + 1);
+		float filter_coefficient[filter_len];
+		liquid_firdes_rrcos(255, 4, 0.2, 0, filter_coefficient);
+
+		// create filter object
+		m_rrc_filter_obj = firfilt_crcf_create(filter_coefficient, filter_len);
 	}
 	catch (const std::exception& ex)
 	{

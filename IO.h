@@ -22,6 +22,7 @@
 #include <queue>
 #include <utility>
 #include <cstdlib>
+#include <chrono>
 
 #include "Globals.h"
 
@@ -56,7 +57,7 @@ public:
 	bool hasLockout() const;
 
 	void resetWatchdog();
-	uint32_t getWatchdog();
+	std::chrono::steady_clock::duration getWatchdog();
 
 	void selfTest();
 
@@ -104,6 +105,7 @@ private:
 	uint16_t             m_dacOverflow;
 
 	volatile uint32_t    m_watchdog;
+	std::chrono::steady_clock::time_point m_timeout;
 
 	bool                 m_lockout;
 

@@ -278,7 +278,7 @@ void CIO::process()
 	m_ledCount++;
 	if (m_started) {
 		// Two seconds timeout
-		if (m_watchdog >= 48000U) {
+		if (std::chrono::steady_clock::now() - m_timeout >= std::chrono::steady_clock::duration(std::chrono::seconds(2))) {
 			if (m_modemState == STATE_DSTAR || m_modemState == STATE_DMR || m_modemState == STATE_YSF || m_modemState == STATE_P25 || m_modemState == STATE_NXDN || m_modemState == STATE_POCSAG) {
 				if (m_modemState == STATE_DMR && m_tx)
 					dmrTX.setStart(false);
@@ -287,7 +287,7 @@ void CIO::process()
 				setMode();
 			}
 
-			m_watchdog = 0U;
+			m_timeout = std::chrono::steady_clock::now();
 		}
 
 #if defined(CONSTANT_SRV_LED)
@@ -638,12 +638,12 @@ bool CIO::hasRXOverflow()
 
 void CIO::resetWatchdog()
 {
-	m_watchdog = 0U;
+	m_timeout = std::chrono::steady_clock::now();
 }
 
-uint32_t CIO::getWatchdog()
+std::chrono::steady_clock::duration CIO::getWatchdog()
 {
-	return m_watchdog;
+	return std::chrono::steady_clock::now() - m_timeout;
 }
 
 bool CIO::hasLockout() const

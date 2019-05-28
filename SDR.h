@@ -8,12 +8,14 @@
 #include <SoapySDR/Device.hpp>
 #include <SoapySDR/Formats.hpp>
 #include <cstdint>
+#include <liquid/liquid.h>
 
 class CSDR {
 public:
 	CSDR();
 	uint8_t setFrequency(const uint8_t* data, uint8_t length);
 	void setStreamState(bool isEnabled);
+	int readStreamStatus(int& flags);
 	void write(int16_t* symbols, uint16_t length);
 
 private:
@@ -30,6 +32,9 @@ private:
 	const double            m_phase_rate_B;
 	const double            m_phase_rate_C;
 	const double            m_phase_rate_D;
+	firfilt_crcf            m_rrc_filter_obj;
+	liquid_float_complex m_x;
+	liquid_float_complex m_y;
 };
 
 #endif

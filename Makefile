@@ -1,7 +1,7 @@
 CC      = cc
 CXX     = c++
 CFLAGS  = -g -O3 -Wall -std=c++0x
-LIBS    = -lSoapySDR
+LIBS    = -lSoapySDR -lliquid
 LDFLAGS = -g
 
 OBJECTS =	MMDVMSdr.o SerialPort.o IO.o DMRTX.o DMRSlotType.o SDR.o

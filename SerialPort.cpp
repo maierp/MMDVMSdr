@@ -22,6 +22,7 @@
 #include <iostream>
 #include <termios.h>
 #include <unistd.h>
+#include <chrono>
 
 #include "Config.h"
 #include "Globals.h"
@@ -156,6 +157,13 @@ void CSerialPort::sendNAK(uint8_t err)
 
 void CSerialPort::getStatus()
 {
+	int flags(0);
+	sdr.readStreamStatus(flags);
+	//std::cout << "Flags: " << std::to_string(flags) << std::endl;
+	if (flags & 4) // "4" seems to be set when there is no data left in the tx buffer of the sdr
+	{
+		setMode(STATE_IDLE);
+	}
 	io.resetWatchdog();
 
 	uint8_t reply[20U];
@@ -451,6 +459,8 @@ void CSerialPort::setMode(MMDVM_STATE modemState)
 	//	dstarRX.reset();
 
 	if (modemState != STATE_DMR) {
+		sdr.setStreamState(false);
+		m_tx = false;
 		//dmrIdleRX.reset();
 		//dmrDMORX.reset();
 		//dmrRX.reset();
@@ -803,7 +813,7 @@ void CSerialPort::process()
 		}
 	}
 
-	if (io.getWatchdog() >= 48000U) {
+	if (io.getWatchdog() >= std::chrono::steady_clock::duration(std::chrono::seconds(2))) {
 		m_ptr = 0U;
 		m_len = 0U;
 	}
