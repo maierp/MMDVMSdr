@@ -24,6 +24,7 @@
 #include <termios.h>
 #include <unistd.h>
 #include <chrono>
+#include <sys/stat.h>
 
 #include "Config.h"
 #include "Globals.h"
@@ -86,8 +87,8 @@ const uint8_t MMDVM_DEBUG5 = 0xF5U;
 #define BAUDRATE B115200
 
 #define HW_TYPE "MMDVM SDR"
-
 #define DESCRIPTION "20190523 (D-Star/DMR/System Fusion/P25/NXDN/POCSAG)"
+#define SERIAL_DEVICE_FILE "/dev/MMDVMSdr"
 
 #if defined(GITVERSION)
 #define concat(h, a, c) h " " a " GitID #" c ""
@@ -112,6 +113,12 @@ CSerialPort::CSerialPort() :
 	unlockpt(m_serial_fd);
 	char* pts_name = ptsname(m_serial_fd);
 	std::cout << "ptsname: " << pts_name << std::endl;
+
+	// Try to the virtual serial port if it already exists
+	remove(SERIAL_DEVICE_FILE);
+	// Create symlink to virtual serial port
+	symlink(pts_name, SERIAL_DEVICE_FILE);
+
 	/* serial port parameters */
 	struct termios newtio = {};
 	struct termios oldtio = {};

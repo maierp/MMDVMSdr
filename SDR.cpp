@@ -27,6 +27,8 @@ void CSDR::setStreamState(bool isEnabled)
 		std::cout << "SDR: Enable Modem" << std::endl;
 
 		m_device->activateStream(m_stream);
+		m_numElems = m_device->getStreamMTU(m_stream); // Number of IQ pairs
+		std::cout << "SDR: NumElements: " << m_numElems << std::endl;
 	}
 	else
 	{
@@ -44,38 +46,14 @@ int CSDR::readStreamStatus(int& flags)
 	return m_device->readStreamStatus(m_stream, chanMask, flags, timeNs);
 }
 
-void CSDR::write(int16_t* symbols, uint16_t length)
+void CSDR::write(float* symbols, uint16_t length)
 {
-	int numChans(1);
-	const size_t numElems = m_device->getStreamMTU(m_stream); // Number of IQ pairs
-	std::vector<std::vector<int16_t>> buffMem(numChans, std::vector<int16_t>(2 * numElems)); // (2*numElements)/2  two characters fit in full buffer
-	std::vector<void*> buffs(numChans);
-
-	//std::fill(buffMem[0].begin(), buffMem[0].end(), m_fullScale);
-
-	for (size_t j = 0; j < 4; j++) //Todo: hier erst nur 4 symbole
+	for (size_t j = 0; j < 20; j++) //4 Symbols with 5 Samples each
 	{
-		const char symbol = symbols[j];
-		for (size_t i = 0; i < 255; i++)
+		const float symbol = symbols[j] * m_phase_delta;
+		for (size_t i = 0; i < 51; i++)
 		{
-			switch (symbol)
-			{
-			case 0:
-				m_sin_phase += m_phase_rate_A;// 0.003;
-				break;
-			case 1:
-				m_sin_phase += m_phase_rate_B;// 0.001;
-				break;
-			case 2:
-				m_sin_phase += m_phase_rate_C;// 0.001;
-				break;
-			case 3:
-				m_sin_phase += m_phase_rate_D;// 0.003;
-				break;
-			default:
-				std::cout << ".";
-				break;
-			}
+			m_sin_phase += symbol;
 			if (m_sin_phase >= 2 * M_PI)
 			{
 				m_sin_phase -= 2 * M_PI;
@@ -84,37 +62,27 @@ void CSDR::write(int16_t* symbols, uint16_t length)
 			{
 				m_sin_phase += 2 * M_PI;
 			}
-			//m_x.real(m_fullScale * std::sin(m_sin_phase));
-			//m_x.imag(m_fullScale* std::cos(m_sin_phase));
-			//
-			//firfilt_crcf_push(m_rrc_filter_obj, m_x);
-			//firfilt_crcf_execute(m_rrc_filter_obj, &m_y);
-			//buffMem[0][(j * 255 * 2) + (2 * i)] = m_y.real();
-			//buffMem[0][(j * 255 * 2) + (2 * i) + 1] = m_y.imag();
 
-			buffMem[0][(j * 255 * 2) + (2 * i)] = m_fullScale * std::sin(m_sin_phase);
-			buffMem[0][(j * 255 * 2) + (2 * i) + 1] = m_fullScale * std::cos(m_sin_phase);
+			m_buffMem[0][(j * 51 * 2) + (2 * i)] = m_fullScale * std::sin(m_sin_phase);
+			m_buffMem[0][(j * 51 * 2) + (2 * i) + 1] = m_fullScale * std::cos(m_sin_phase);
 		}
 	}
 
-	for (int i = 0; i < numChans; i++) buffs[i] = buffMem[i].data();
+	for (int i = 0; i < m_numChans; i++) m_buffs[i] = m_buffMem[i].data();
 
-	//int ret(0);
 	int flags(0);
 	long long timeNs(0);
-	m_device->writeStream(m_stream, buffs.data(), /*numElems*/1020, flags, timeNs);
-
+	m_device->writeStream(m_stream, m_buffs.data(), /*numElems*/1020, flags, timeNs);
 }
 
 CSDR::CSDR() :
 	m_device(nullptr),
+	m_numChans(1),
 	m_samplerate(255 * 4800), //4800 symbols/s with 255 samples/symbol
 	m_sin_phase(0),
 	m_phase_delta(2.0 * M_PI / m_samplerate),
-	m_phase_rate_A(m_phase_delta * 1944), //+1.944Hz
-	m_phase_rate_B(m_phase_delta * 648),  //  +648Hz
-	m_phase_rate_C(m_phase_delta * -648), //  -648Hz
-	m_phase_rate_D(m_phase_delta * -1944) //-1.944Hz
+	m_buffMem(m_numChans, std::vector<int16_t>(2 * 1020)),
+	m_buffs(m_numChans)
 {
 	try
 	{
@@ -136,13 +104,6 @@ CSDR::CSDR() :
 		std::cout << "SDR: Format:" << m_format << " FullScale:" << m_fullScale << std::endl;
 		setStreamState(true);
 		setStreamState(false);
-
-		int filter_len(2 * 255 * 4 + 1);
-		float filter_coefficient[filter_len];
-		liquid_firdes_rrcos(255, 4, 0.2, 0, filter_coefficient);
-
-		// create filter object
-		m_rrc_filter_obj = firfilt_crcf_create(filter_coefficient, filter_len);
 	}
 	catch (const std::exception& ex)
 	{

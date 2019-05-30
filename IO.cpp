@@ -323,13 +323,13 @@ void CIO::process()
 	if (m_rxBuffer.size() >= RX_BLOCK_SIZE) {
 		int16_t    samples[RX_BLOCK_SIZE];
 		uint8_t  control[RX_BLOCK_SIZE];
-		uint16_t rssi[RX_BLOCK_SIZE];
+		//uint16_t rssi[RX_BLOCK_SIZE];
 
 		for (uint16_t i = 0U; i < RX_BLOCK_SIZE; i++) {
 			uint16_t sample;
 			std::tie(sample, control[i]) = m_rxBuffer.front();
 			m_rxBuffer.pop();
-			rssi[i] = m_rssiBuffer.front();
+			//rssi[i] = m_rssiBuffer.front();
 			m_rssiBuffer.pop();
 			//m_rssiBuffer.get(rssi[i]);
 
@@ -494,9 +494,8 @@ void CIO::process()
 	}
 }
 
-void CIO::write(MMDVM_STATE mode, int16_t* symbols, uint16_t length, const uint8_t* control)
+void CIO::write(MMDVM_STATE mode, float* symbols, uint16_t length, const uint8_t* control)
 {
-	//std::cout << "IO::write started:" << m_started << " locked:" << m_lockout << std::endl;
 	if (!m_started)
 		return;
 

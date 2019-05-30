@@ -21,12 +21,11 @@
 #if !defined(DMRTX_H)
 #define  DMRTX_H
 
+#include <liquid/liquid.h>
 #include <queue>
 
 #include "Config.h"
 #include "DMRDefines.h"
-
-//#include "SerialRB.h"
 
 enum DMRTXSTATE {
 	DMRTXSTATE_IDLE,
@@ -63,8 +62,7 @@ public:
 
 private:
 	std::queue<uint8_t>              m_fifo[2U];
-	//arm_fir_interpolate_instance_q15 m_modFilter;
-	//q15_t                            m_modState[16U];    // blockSize + phaseLength - 1, 4 + 9 - 1 plus some spare
+	firinterp_rrrf                   m_rrc_interp_filter_obj;
 	DMRTXSTATE                       m_state;
 	uint8_t                          m_idle[DMR_FRAME_LENGTH_BYTES];
 	uint8_t                          m_cachPtr;

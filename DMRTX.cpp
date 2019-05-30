@@ -27,16 +27,10 @@
 #include "Globals.h"
 #include "DMRSlotType.h"
 
- // Generated using rcosdesign(0.2, 8, 5, 'sqrt') in MATLAB
-//static q15_t RRC_0_2_FILTER[] = { 0, 0, 0, 0, 850, 219, -720, -1548, -1795, -1172, 237, 1927, 3120, 3073, 1447, -1431, -4544, -6442,
-//								 -5735, -1633, 5651, 14822, 23810, 30367, 32767, 30367, 23810, 14822, 5651, -1633, -5735, -6442,
-//								 -4544, -1431, 1447, 3073, 3120, 1927, 237, -1172, -1795, -1548, -720, 219, 850 }; // numTaps = 45, L = 5
-const uint16_t RRC_0_2_FILTER_PHASE_LEN = 9U; // phaseLength = numTaps/L
-
-const int16_t DMR_LEVELA = 1362;
-const int16_t DMR_LEVELB = 454;
-const int16_t DMR_LEVELC = -454;
-const int16_t DMR_LEVELD = -1362;
+const float DMR_FREQ_A = 1944; //+1.944Hz
+const float DMR_FREQ_B = 648;  //  +648Hz
+const float DMR_FREQ_C = -648; //  -648Hz
+const float DMR_FREQ_D = -1944; //-1.944Hz
 
 // The PR FILL and BS Data Sync pattern.
 const uint8_t IDLE_DATA[] =
@@ -63,8 +57,6 @@ const uint32_t ABORT_COUNT = 6U;
 
 CDMRTX::CDMRTX() :
 	m_fifo(),
-	//m_modFilter(),
-	//m_modState(),
 	m_state(DMRTXSTATE_IDLE),
 	m_idle(),
 	m_cachPtr(0U),
@@ -78,17 +70,10 @@ CDMRTX::CDMRTX() :
 	m_abortCount(),
 	m_abort()
 {
-	//::memset(m_modState, 0x00U, 16U * sizeof(q15_t));
-
-	//m_modFilter.L = DMR_RADIO_SYMBOL_LENGTH;
-	//m_modFilter.phaseLength = RRC_0_2_FILTER_PHASE_LEN;
-	//m_modFilter.pCoeffs = RRC_0_2_FILTER;
-	//m_modFilter.pState = m_modState;
+	m_rrc_interp_filter_obj = firinterp_rrrf_create_prototype(LIQUID_FIRFILT_RCOS, 5, 4, 0.2, 0); // 4 Symbols with 5 interpolation samples each
 
 	std::copy(std::begin(EMPTY_SHORT_LC), std::end(EMPTY_SHORT_LC), std::begin(m_newShortLC));
 	std::copy(std::begin(EMPTY_SHORT_LC), std::end(EMPTY_SHORT_LC), std::begin(m_shortLC));
-	//::memcpy(m_newShortLC, EMPTY_SHORT_LC, 12U);
-	//::memcpy(m_shortLC, EMPTY_SHORT_LC, 12U);
 
 	m_abort[0U] = false;
 	m_abort[1U] = false;
@@ -102,7 +87,6 @@ void CDMRTX::process()
 	if (m_state == DMRTXSTATE_IDLE)
 		return;
 
-	//std::cout << "DMRTX::process m_state:" << m_state << " poLen:" << m_poLen << std::endl;
 	if (m_poLen == 0U) {
 		switch (m_state) {
 		case DMRTXSTATE_SLOT1:
@@ -145,15 +129,9 @@ void CDMRTX::process()
 
 uint8_t CDMRTX::writeData1(const uint8_t* data, uint8_t length)
 {
-	//std::cout << "DMRTX::writeData1 length:" << std::to_string(length) << " tx:" << m_tx << std::endl;
 	if (length != (DMR_FRAME_LENGTH_BYTES + 1U))
 		return 4U;
 
-	//uint16_t space = m_fifo[0U].getSpace();
-	//if (space < DMR_FRAME_LENGTH_BYTES)
-	//	return 5U;
-
-	//std::cout << "DMRTX::writeData1 abort:" << std::to_string(m_abort[0U]) << std::endl;
 	if (m_abort[0U]) {
 		std::queue<uint8_t>().swap(m_fifo[0U]); //clear the buffer
 		m_abort[0U] = false;
@@ -165,7 +143,6 @@ uint8_t CDMRTX::writeData1(const uint8_t* data, uint8_t length)
 	// Start the TX if it isn't already on
 	if (!m_tx)
 		m_state = DMRTXSTATE_SLOT1;
-	//std::cout << "DMRTX::writeData1 state:" << std::to_string(m_state) << std::endl;
 
 	return 0U;
 }
@@ -174,10 +151,6 @@ uint8_t CDMRTX::writeData2(const uint8_t* data, uint8_t length)
 {
 	if (length != (DMR_FRAME_LENGTH_BYTES + 1U))
 		return 4U;
-
-	//uint16_t space = m_fifo[1U].getSpace();
-	//if (space < DMR_FRAME_LENGTH_BYTES)
-	//	return 5U;
 
 	if (m_abort[1U]) {
 		std::queue<uint8_t>().swap(m_fifo[1U]); //clear the buffer
@@ -200,7 +173,6 @@ uint8_t CDMRTX::writeShortLC(const uint8_t* data, uint8_t length)
 		return 4U;
 
 	std::fill_n(m_newShortLC, 12U, 0x00U);
-	//::memset(m_newShortLC, 0x00U, 12U);
 
 	for (uint8_t i = 0U; i < 68U; i++) {
 		bool b = READ_BIT1(data, i);
@@ -251,41 +223,35 @@ void CDMRTX::setCal(bool start)
 
 void CDMRTX::writeByte(uint8_t c, uint8_t control)
 {
-	//std::cout << "DMRTX::writeByte " << c << std::endl;
-	int16_t inBuffer[4U];
-	int16_t outBuffer[DMR_RADIO_SYMBOL_LENGTH * 4U];
+	float inBuffer[4U];
+	float outBuffer[DMR_RADIO_SYMBOL_LENGTH * 4U];
 
 	const uint8_t MASK = 0xC0U;
 
 	for (uint8_t i = 0U; i < 4U; i++, c <<= 2) {
 		switch (c & MASK) {
 		case 0xC0U:
-			inBuffer[i] = 0;// DMR_LEVELA;
+			inBuffer[i] = DMR_FREQ_A;
 			break;
 		case 0x80U:
-			inBuffer[i] = 1;// DMR_LEVELB;
+			inBuffer[i] = DMR_FREQ_B;
 			break;
 		case 0x00U:
-			inBuffer[i] = 2;// DMR_LEVELC;
+			inBuffer[i] = DMR_FREQ_C;
 			break;
 		default:
-			inBuffer[i] = 3;// DMR_LEVELD;
+			inBuffer[i] = DMR_FREQ_D;
 			break;
 		}
 	}
 
 	uint8_t controlBuffer[DMR_RADIO_SYMBOL_LENGTH * 4U];
 	std::fill_n(controlBuffer, DMR_RADIO_SYMBOL_LENGTH * 4U, MARK_NONE);
-	//::memset(controlBuffer, MARK_NONE, DMR_RADIO_SYMBOL_LENGTH * 4U * sizeof(uint8_t));
 	controlBuffer[DMR_RADIO_SYMBOL_LENGTH * 2U] = control;
 
-	//::arm_fir_interpolate_q15(&m_modFilter, inBuffer, outBuffer, 4U);
-	//for (size_t i = 0; i < DMR_RADIO_SYMBOL_LENGTH * 4U; i++)
-	//{
-	//	outBuffer[i] = inBuffer[(int)i / DMR_RADIO_SYMBOL_LENGTH];
-	//}
+	firinterp_rrrf_execute_block(m_rrc_interp_filter_obj, inBuffer, 4U, outBuffer);
 
-	io.write(STATE_DMR, inBuffer, 4U, controlBuffer);
+	io.write(STATE_DMR, outBuffer, 20U, controlBuffer);
 }
 
 uint8_t CDMRTX::getSpace1() const
