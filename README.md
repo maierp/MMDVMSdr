@@ -32,10 +32,10 @@ m_serial = new CSerialController(m_port, SERIAL_115200, false);
 And compile MMDVMHost.
 
 ## Use MMDVMSdr with MMDVMHost
-Start MMDVMSdr and note the created serial device file (`ptsname: /dev/pts/1`).
+Upon start, MMDVMSdr creates a virtual serial port `/dev/pts/1` and a symbolic link to this `/dev/MMDVMSdr`.
 
-Use this device in the MMDVM.ini
+Use this symbolic link `/dev/MMDVMSdr` in the MMDVM.ini
 ~~~~
 [Modem]
-Port=/dev/pts/1
+Port=/dev/MMDVMSdr
 ~~~~
