@@ -1,0 +1,13 @@
+diff --git a/Modem.cpp b/Modem.cpp
+index 7fe5ae1..8fed08c 100644
+--- a/Modem.cpp
++++ b/Modem.cpp
+@@ -180,7 +180,7 @@ void CModem::setSerialParams(const std::string& protocol, unsigned int address)
+ 	if (protocol == "i2c")
+ 		m_serial = new CI2CController(m_port, SERIAL_115200, address, true);
+ 	else
+-		m_serial = new CSerialController(m_port, SERIAL_115200, true);
++		m_serial = new CSerialController(m_port, SERIAL_115200, false);
+ }
+ 
+ void CModem::setRFParams(unsigned int rxFrequency, int rxOffset, unsigned int txFrequency, int txOffset, int txDCOffset, int rxDCOffset, float rfLevel, unsigned int pocsagFrequency)
