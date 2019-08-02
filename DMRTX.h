@@ -80,6 +80,7 @@ private:
 	void createCACH(uint8_t txSlotIndex, uint8_t rxSlotIndex);
 	void createCal();
 	void writeByte(uint8_t c, uint8_t control);
+	void readByte();
 };
 
 #endif

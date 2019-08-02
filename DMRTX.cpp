@@ -121,6 +121,7 @@ void CDMRTX::process()
 			uint8_t m = m_markBuffer[m_poPtr];
 			m_poPtr++;
 			writeByte(c, m);
+			readByte();
 		}
 		m_poPtr = 0U;
 		m_poLen = 0U;
@@ -252,6 +253,11 @@ void CDMRTX::writeByte(uint8_t c, uint8_t control)
 	firinterp_rrrf_execute_block(m_rrc_interp_filter_obj, inBuffer, 4U, outBuffer);
 
 	io.write(STATE_DMR, outBuffer, 20U, controlBuffer);
+}
+
+void CDMRTX::readByte()
+{
+	io.read();
 }
 
 uint8_t CDMRTX::getSpace1() const

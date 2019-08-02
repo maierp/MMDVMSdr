@@ -1,4 +1,4 @@
-﻿/*
+/*
  *   Copyright (C) 2019 by Patrick Maier DK5MP
  *
  *   This program is free software : you can redistribute itand /or modify
@@ -73,6 +73,7 @@ CSerialPort serial;
 CIO io;
 CSDR sdr;
 
+
 void loop()
 {
 	serial.process();
@@ -122,6 +123,22 @@ void loop()
 	//	cwIdTX.process();
 }
 
+void dmrThreadTXProcess()
+{
+	while (true)
+	{
+		dmrTX.process();
+	}
+}
+
+void dmrThreadRXProcess()
+{
+	//while (true)
+	//{
+	//	dmrRX.process();
+	//}
+}
+
 /***********************************************************************
  * main utility entry point
  **********************************************************************/
@@ -129,6 +146,7 @@ int main()
 {
 	cout << "MMDVM-SDR is starting" << endl;
 
+	std::thread dmrThread(dmrThreadTXProcess);
 	for (;;)
 		loop();
 

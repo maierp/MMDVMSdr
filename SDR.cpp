@@ -26,14 +26,14 @@ void CSDR::setStreamState(bool isEnabled)
 	{
 		std::cout << "SDR: Enable Modem" << std::endl;
 
-		m_device->activateStream(m_stream);
-		m_numElems = m_device->getStreamMTU(m_stream); // Number of IQ pairs
+		m_device->activateStream(m_TXstream);
+		m_numElems = m_device->getStreamMTU(m_TXstream); // Number of IQ pairs
 		std::cout << "SDR: NumElements: " << m_numElems << std::endl;
 	}
 	else
 	{
 		std::cout << "SDR: Disable Modem" << std::endl;
-		m_device->deactivateStream(m_stream);
+		m_device->deactivateStream(m_TXstream);
 		//m_device->closeStream(m_stream);
 		//SoapySDR::Device::unmake(m_device);
 	}
@@ -43,7 +43,7 @@ int CSDR::readStreamStatus(int& flags)
 {
 	size_t chanMask(0);
 	long long timeNs(0);
-	return m_device->readStreamStatus(m_stream, chanMask, flags, timeNs);
+	return m_device->readStreamStatus(m_TXstream, chanMask, flags, timeNs);
 }
 
 void CSDR::write(float* symbols, uint16_t length)
@@ -63,16 +63,24 @@ void CSDR::write(float* symbols, uint16_t length)
 				m_sin_phase += 2 * M_PI;
 			}
 
-			m_buffMem[0][(j * 51 * 2) + (2 * i)] = m_fullScale * std::sin(m_sin_phase);
-			m_buffMem[0][(j * 51 * 2) + (2 * i) + 1] = m_fullScale * std::cos(m_sin_phase);
+			m_TXBuffMem[0][(j * 51 * 2) + (2 * i)] = m_TXfullScale * std::sin(m_sin_phase);
+			m_TXBuffMem[0][(j * 51 * 2) + (2 * i) + 1] = m_TXfullScale * std::cos(m_sin_phase);
 		}
 	}
 
-	for (int i = 0; i < m_numChans; i++) m_buffs[i] = m_buffMem[i].data();
+	for (int i = 0; i < m_numChans; i++) m_TXBuffs[i] = m_TXBuffMem[i].data();
 
 	int flags(0);
 	long long timeNs(0);
-	m_device->writeStream(m_stream, m_buffs.data(), /*numElems*/1020, flags, timeNs);
+	m_device->writeStream(m_TXstream, m_TXBuffs.data(), /*numElems*/1020, flags, timeNs);
+}
+
+void CSDR::read(float* symbols, uint16_t length)
+{
+	for (int i = 0; i < m_numChans; i++) m_RXBuffs[i] = m_RXBuffMem[i].data();
+	int flags(0);
+	long long timeNs(0);
+	m_device->readStream(m_RXstream, m_RXBuffs.data(), 1020, flags, timeNs);
 }
 
 CSDR::CSDR() :
@@ -81,29 +89,49 @@ CSDR::CSDR() :
 	m_samplerate(255 * 4800), //4800 symbols/s with 255 samples/symbol
 	m_sin_phase(0),
 	m_phase_delta(2.0 * M_PI / m_samplerate),
-	m_buffMem(m_numChans, std::vector<int16_t>(2 * 1020)),
-	m_buffs(m_numChans)
+	m_TXBuffMem(m_numChans, std::vector<int16_t>(2 * 1020)),
+	m_TXBuffs(m_numChans),
+	m_RXBuffMem(m_numChans, std::vector<int16_t>(2 * 1020)),
+	m_RXBuffs(m_numChans)
 {
 	try
 	{
 		m_device = SoapySDR::Device::make("driver=lime");
 		m_device->setSampleRate(SOAPY_SDR_TX, 0, m_samplerate);
+		m_device->setSampleRate(SOAPY_SDR_RX, 0, m_samplerate);
 		m_device->setFrequency(SOAPY_SDR_TX, 0, 430262500);
+		m_device->setFrequency(SOAPY_SDR_RX, 0, 430262500);
 		m_device->setGain(SOAPY_SDR_TX, 0, 64);
-		std::cout << "SDR: Gain: " << m_device->getGain(SOAPY_SDR_TX, 0) << std::endl;
+		m_device->setGain(SOAPY_SDR_RX, 0, 64);
+		std::cout << "SDR: TXGain: " << m_device->getGain(SOAPY_SDR_TX, 0) << std::endl;
+		std::cout << "SDR: RXGain: " << m_device->getGain(SOAPY_SDR_RX, 0) << std::endl;
 
-		std::cout << "SDR: List antennas:" << std::endl;
-		const auto antennas = m_device->listAntennas(SOAPY_SDR_TX, 0);
-		for (const auto& antenna : antennas)
+		std::cout << "SDR: List TX antennas:" << std::endl;
+		const auto antennasTX = m_device->listAntennas(SOAPY_SDR_TX, 0);
+		for (const auto& antenna : antennasTX)
 		{
 			std::cout << "SDR:    " << antenna << std::endl;
 		}
-		std::cout << "SDR: Selected antenna: " << m_device->getAntenna(SOAPY_SDR_TX, 0) << std::endl;
-		m_format = m_device->getNativeStreamFormat(SOAPY_SDR_TX, 0, m_fullScale);
-		m_stream = m_device->setupStream(SOAPY_SDR_TX, m_format);
-		std::cout << "SDR: Format:" << m_format << " FullScale:" << m_fullScale << std::endl;
+		std::cout << "SDR: Selected TX antenna: " << m_device->getAntenna(SOAPY_SDR_TX, 0) << std::endl;
+
+		std::cout << "SDR: List RX antennas:" << std::endl;
+		const auto antennasRX = m_device->listAntennas(SOAPY_SDR_RX, 0);
+		for (const auto& antenna : antennasRX)
+		{
+			std::cout << "SDR:    " << antenna << std::endl;
+		}
+		std::cout << "SDR: Selected RX antenna: " << m_device->getAntenna(SOAPY_SDR_RX, 0) << std::endl;
+
+		m_TXformat = m_device->getNativeStreamFormat(SOAPY_SDR_TX, 0, m_TXfullScale);
+		m_RXformat = m_device->getNativeStreamFormat(SOAPY_SDR_RX, 0, m_RXfullScale);
+		m_TXstream = m_device->setupStream(SOAPY_SDR_TX, m_TXformat);
+		m_RXstream = m_device->setupStream(SOAPY_SDR_RX, m_RXformat);
+		std::cout << "SDR: TX Format:" << m_TXformat << " FullScale:" << m_TXfullScale << std::endl;
+		std::cout << "SDR: RX Format:" << m_RXformat << " FullScale:" << m_RXfullScale << std::endl;
 		setStreamState(true);
 		setStreamState(false);
+		m_device->activateStream(m_RXstream);
+
 	}
 	catch (const std::exception& ex)
 	{

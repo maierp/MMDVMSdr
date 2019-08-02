@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|ARM">
@@ -83,6 +83,7 @@
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros" />
   <ItemGroup>
+    <ClCompile Include="DMRRX.cpp" />
     <ClCompile Include="DMRSlotType.cpp" />
     <ClCompile Include="DMRTX.cpp" />
     <ClCompile Include="IO.cpp" />
@@ -94,6 +95,7 @@
     <ClInclude Include="Config.h" />
     <ClInclude Include="Debug.h" />
     <ClInclude Include="DMRDefines.h" />
+    <ClInclude Include="DMRRX.h" />
     <ClInclude Include="DMRSlotType.h" />
     <ClInclude Include="DMRTX.h" />
     <ClInclude Include="GitVersion.h" />
@@ -102,6 +104,9 @@
     <ClInclude Include="MMDVMSdr.h" />
     <ClInclude Include="SDR.h" />
     <ClInclude Include="SerialPort.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Makefile" />
   </ItemGroup>
   <ItemDefinitionGroup />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
