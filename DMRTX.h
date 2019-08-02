@@ -26,6 +26,7 @@
 
 #include "Config.h"
 #include "DMRDefines.h"
+#include "Semaphore.h"
 
 enum DMRTXSTATE {
 	DMRTXSTATE_IDLE,
@@ -75,11 +76,13 @@ private:
 	uint32_t                         m_frameCount;
 	uint32_t                         m_abortCount[2U];
 	bool                             m_abort[2U];
+	Semaphore                        m_poSemaphore;
 
 	void createData(uint8_t slotIndex);
 	void createCACH(uint8_t txSlotIndex, uint8_t rxSlotIndex);
 	void createCal();
 	void writeByte(uint8_t c, uint8_t control);
+	void readByte();
 };
 
 #endif

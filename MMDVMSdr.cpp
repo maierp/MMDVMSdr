@@ -1,4 +1,4 @@
-﻿/*
+/*
  *   Copyright (C) 2019 by Patrick Maier DK5MP
  *
  *   This program is free software : you can redistribute itand /or modify
@@ -73,6 +73,7 @@ CSerialPort serial;
 CIO io;
 CSDR sdr;
 
+
 void loop()
 {
 	serial.process();
@@ -83,13 +84,13 @@ void loop()
 	//if (m_dstarEnable && m_modemState == STATE_DSTAR)
 	//	dstarTX.process();
 
-	if (m_dmrEnable && m_modemState == STATE_DMR) {
-		//std::cout << "dmrEnable:" << m_dmrEnable << " modemState:" << std::to_string(m_modemState) << std::endl;
-		//if (m_duplex)
-			dmrTX.process();
-		//else
-		//	dmrDMOTX.process();
-	}
+	//if (m_dmrEnable && m_modemState == STATE_DMR) {
+	//	//std::cout << "dmrEnable:" << m_dmrEnable << " modemState:" << std::to_string(m_modemState) << std::endl;
+	//	//if (m_duplex)
+	//		dmrTX.process();
+	//	//else
+	//	//	dmrDMOTX.process();
+	//}
 
 	//if (m_ysfEnable && m_modemState == STATE_YSF)
 	//	ysfTX.process();
@@ -122,6 +123,24 @@ void loop()
 	//	cwIdTX.process();
 }
 
+void dmrThreadTXProcess()
+{
+	while (true)
+	{
+		if (m_dmrEnable && m_modemState == STATE_DMR) {
+			dmrTX.process();
+		}
+	}
+}
+
+void dmrThreadRXProcess()
+{
+	//while (true)
+	//{
+	//	dmrRX.process();
+	//}
+}
+
 /***********************************************************************
  * main utility entry point
  **********************************************************************/
@@ -129,6 +148,7 @@ int main()
 {
 	cout << "MMDVM-SDR is starting" << endl;
 
+	std::thread dmrThread(dmrThreadTXProcess);
 	for (;;)
 		loop();
 

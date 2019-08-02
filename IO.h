@@ -39,6 +39,7 @@ public:
 	void process();
 
 	void write(MMDVM_STATE mode, float* samples, uint16_t length, const uint8_t* control = NULL);
+	void read();
 
 	uint16_t getSpace() const;
 

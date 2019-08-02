@@ -68,7 +68,8 @@ CDMRTX::CDMRTX() :
 	m_poPtr(0U),
 	m_frameCount(0U),
 	m_abortCount(),
-	m_abort()
+	m_abort(),
+	m_poSemaphore()
 {
 	m_rrc_interp_filter_obj = firinterp_rrrf_create_prototype(LIQUID_FIRFILT_RCOS, 5, 4, 0.2, 0); // 4 Symbols with 5 interpolation samples each
 
@@ -84,6 +85,7 @@ CDMRTX::CDMRTX() :
 
 void CDMRTX::process()
 {
+	m_poSemaphore.wait();
 	if (m_state == DMRTXSTATE_IDLE)
 		return;
 
@@ -121,6 +123,7 @@ void CDMRTX::process()
 			uint8_t m = m_markBuffer[m_poPtr];
 			m_poPtr++;
 			writeByte(c, m);
+			readByte();
 		}
 		m_poPtr = 0U;
 		m_poLen = 0U;
@@ -144,6 +147,7 @@ uint8_t CDMRTX::writeData1(const uint8_t* data, uint8_t length)
 	if (!m_tx)
 		m_state = DMRTXSTATE_SLOT1;
 
+	m_poSemaphore.notify();
 	return 0U;
 }
 
@@ -164,6 +168,7 @@ uint8_t CDMRTX::writeData2(const uint8_t* data, uint8_t length)
 	if (!m_tx)
 		m_state = DMRTXSTATE_SLOT1;
 
+	m_poSemaphore.notify();
 	return 0U;
 }
 
@@ -252,6 +257,11 @@ void CDMRTX::writeByte(uint8_t c, uint8_t control)
 	firinterp_rrrf_execute_block(m_rrc_interp_filter_obj, inBuffer, 4U, outBuffer);
 
 	io.write(STATE_DMR, outBuffer, 20U, controlBuffer);
+}
+
+void CDMRTX::readByte()
+{
+	io.read();
 }
 
 uint8_t CDMRTX::getSpace1() const

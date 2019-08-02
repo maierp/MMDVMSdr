@@ -558,6 +558,12 @@ void CIO::write(MMDVM_STATE mode, float* symbols, uint16_t length, const uint8_t
 	//}
 }
 
+void CIO::read()
+{
+	float r[1];
+	sdr.read(r, 0);
+}
+
 //uint16_t CIO::getSpace() const
 //{
 //	return m_txBuffer.getSpace();
