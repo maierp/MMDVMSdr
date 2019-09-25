@@ -100,6 +100,7 @@
     <ClInclude Include="DMRTX.h" />
     <ClInclude Include="GitVersion.h" />
     <ClInclude Include="Globals.h" />
+    <ClInclude Include="Semaphore.h" />
     <ClInclude Include="IO.h" />
     <ClInclude Include="MMDVMSdr.h" />
     <ClInclude Include="SDR.h" />
