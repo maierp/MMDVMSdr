@@ -72,6 +72,7 @@ void CSDR::write(float* symbols, uint16_t length)
 
 	int flags(0);
 	long long timeNs(0);
+
 	m_device->writeStream(m_TXstream, m_TXBuffs.data(), /*numElems*/1020, flags, timeNs);
 }
 

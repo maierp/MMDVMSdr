@@ -130,6 +130,9 @@ void dmrThreadTXProcess()
 		if (m_dmrEnable && m_modemState == STATE_DMR) {
 			dmrTX.process();
 		}
+		else {
+			std::this_thread::sleep_for(std::chrono::milliseconds(10));
+		}
 	}
 }
 

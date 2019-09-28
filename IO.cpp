@@ -496,11 +496,15 @@ void CIO::process()
 
 void CIO::write(MMDVM_STATE mode, float* symbols, uint16_t length, const uint8_t* control)
 {
-	if (!m_started)
+	if (!m_started) {
+		std::cout << "CIO::write() not started" << std::endl;
 		return;
+	}
 
-	if (m_lockout)
+	if (m_lockout) {
+		std::cout << "CIO::write() lockout" << std::endl;
 		return;
+	}
 
 	// Switch the transmitter on if needed
 	if (!m_tx) {

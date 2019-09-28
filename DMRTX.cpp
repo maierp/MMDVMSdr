@@ -22,6 +22,8 @@
 #include <algorithm>
 #include <iterator>
 #include <iostream>
+#include <thread>
+#include <chrono>
 
 #include "Config.h"
 #include "Globals.h"
@@ -85,9 +87,10 @@ CDMRTX::CDMRTX() :
 
 void CDMRTX::process()
 {
-	m_poSemaphore.wait();
-	if (m_state == DMRTXSTATE_IDLE)
+	if (m_state == DMRTXSTATE_IDLE) {
+		std::this_thread::sleep_for(std::chrono::milliseconds(10));
 		return;
+	}
 
 	if (m_poLen == 0U) {
 		switch (m_state) {
@@ -123,7 +126,7 @@ void CDMRTX::process()
 			uint8_t m = m_markBuffer[m_poPtr];
 			m_poPtr++;
 			writeByte(c, m);
-			readByte();
+			//readByte();
 		}
 		m_poPtr = 0U;
 		m_poLen = 0U;
@@ -142,12 +145,13 @@ uint8_t CDMRTX::writeData1(const uint8_t* data, uint8_t length)
 
 	for (uint8_t i = 0U; i < DMR_FRAME_LENGTH_BYTES; i++)
 		m_fifo[0U].push(data[i + 1U]);
+	std::cout << "m_fifo[1].size:" << std::to_string(m_fifo[0U].size()) << std::endl;
 
 	// Start the TX if it isn't already on
 	if (!m_tx)
 		m_state = DMRTXSTATE_SLOT1;
 
-	m_poSemaphore.notify();
+	//m_poSemaphore.notify();
 	return 0U;
 }
 
@@ -168,7 +172,7 @@ uint8_t CDMRTX::writeData2(const uint8_t* data, uint8_t length)
 	if (!m_tx)
 		m_state = DMRTXSTATE_SLOT1;
 
-	m_poSemaphore.notify();
+	//m_poSemaphore.notify();
 	return 0U;
 }
 
@@ -212,6 +216,7 @@ uint8_t CDMRTX::writeAbort(const uint8_t* data, uint8_t length)
 void CDMRTX::setStart(bool start)
 {
 	m_state = start ? DMRTXSTATE_SLOT1 : DMRTXSTATE_IDLE;
+	std::cout << "CDMRTX::setStart() m_state" << std::to_string(m_state) << std::endl;
 
 	m_frameCount = 0U;
 	m_abortCount[0U] = 0U;
@@ -224,6 +229,7 @@ void CDMRTX::setStart(bool start)
 void CDMRTX::setCal(bool start)
 {
 	m_state = start ? DMRTXSTATE_CAL : DMRTXSTATE_IDLE;
+	std::cout << "CDMRTX::setCal() m_state" << std::to_string(m_state) << std::endl;
 }
 
 void CDMRTX::writeByte(uint8_t c, uint8_t control)
@@ -255,6 +261,12 @@ void CDMRTX::writeByte(uint8_t c, uint8_t control)
 	controlBuffer[DMR_RADIO_SYMBOL_LENGTH * 2U] = control;
 
 	firinterp_rrrf_execute_block(m_rrc_interp_filter_obj, inBuffer, 4U, outBuffer);
+	//float* pOutBuffer = std::begin(outBuffer);
+	//for (uint8_t i = 0U; i < 4U; i++)
+	//{
+	//	pOutBuffer = std::fill_n(pOutBuffer, 5U, inBuffer[i]);
+
+	//}
 
 	io.write(STATE_DMR, outBuffer, 20U, controlBuffer);
 }
@@ -282,6 +294,7 @@ void CDMRTX::createData(uint8_t slotIndex)
 			m_fifo[slotIndex].pop();
 			m_markBuffer[i] = MARK_NONE;
 		}
+		//std::cout << "CDMRTX::createData() m_fifo.size() " << std::to_string(m_fifo[slotIndex].size()) << std::endl;
 	}
 	else {
 		m_abort[slotIndex] = false;

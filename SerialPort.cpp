@@ -643,7 +643,7 @@ void CSerialPort::process()
 					break;
 
 				case MMDVM_DMR_DATA1:
-					std::cout << "MMDVM_DMR_DATA1 modemState:" << std::to_string(m_modemState) << std::endl;
+					//std::cout << "MMDVM_DMR_DATA1 modemState:" << std::to_string(m_modemState) << std::endl;
 					if (m_dmrEnable) {
 						if (m_modemState == STATE_IDLE || m_modemState == STATE_DMR) {
 							if (m_duplex)
