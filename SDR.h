@@ -36,6 +36,7 @@ public:
 	void read(float* symbols, uint16_t length);
 
 private:
+    bool              m_streamState;
 	SoapySDR::Device* m_device;
 	SoapySDR::Stream* m_TXstream;
 	SoapySDR::Stream* m_RXstream;

@@ -61,7 +61,6 @@
 const uint16_t DC_OFFSET = 2048U;
 
 CIO::CIO() :
-	m_started(false),
 	//m_rssiBuffer(RX_RINGBUFFER_SIZE),
 	//m_dcFilter(),
 	//m_dcState(),
@@ -261,31 +260,18 @@ void CIO::selfTest()
 #endif
 }
 
-void CIO::start()
-{
-	if (m_started)
-		return;
-
-	//startInt();
-
-	m_started = true;
-	std::cout << "IO::start()" << std::endl;
-
-	setMode();
-}
-
 void CIO::process()
 {
 	m_ledCount++;
-	if (m_started) {
+	if (m_modemState != STATE_IDLE) {
 		// Two seconds timeout
 		if (std::chrono::steady_clock::now() - m_timeout >= std::chrono::steady_clock::duration(std::chrono::seconds(2))) {
 			if (m_modemState == STATE_DSTAR || m_modemState == STATE_DMR || m_modemState == STATE_YSF || m_modemState == STATE_P25 || m_modemState == STATE_NXDN || m_modemState == STATE_POCSAG) {
-				if (m_modemState == STATE_DMR && m_tx)
+				if (m_modemState == STATE_DMR)
 					dmrTX.setStart(false);
 				std::cout << "IO::process() Reset modem state due to watchdog" << std::endl;
 				m_modemState = STATE_IDLE;
-				setMode();
+                sdr.setStreamState(0);
 			}
 
 			m_timeout = std::chrono::steady_clock::now();
@@ -496,20 +482,9 @@ void CIO::process()
 
 void CIO::write(MMDVM_STATE mode, float* symbols, uint16_t length, const uint8_t* control)
 {
-	if (!m_started) {
-		std::cout << "CIO::write() not started" << std::endl;
-		return;
-	}
-
 	if (m_lockout) {
 		std::cout << "CIO::write() lockout" << std::endl;
 		return;
-	}
-
-	// Switch the transmitter on if needed
-	if (!m_tx) {
-		m_tx = true;
-		sdr.setStreamState(m_tx);
 	}
 
 	sdr.write(symbols, length);
@@ -584,18 +559,6 @@ void CIO::setDecode(bool dcd)
 void CIO::setADCDetection(bool detect)
 {
 	m_detect = detect;
-}
-
-void CIO::setMode()
-{
-#if defined(MODE_LEDS)
-	setDStarInt(m_modemState == STATE_DSTAR);
-	setDMRInt(m_modemState == STATE_DMR);
-	setYSFInt(m_modemState == STATE_YSF);
-	setP25Int(m_modemState == STATE_P25);
-	setNXDNInt(m_modemState == STATE_NXDN);
-	setPOCSAGInt(m_modemState == STATE_POCSAG);
-#endif
 }
 
 void CIO::setParameters(bool rxInvert, bool txInvert, bool pttInvert, uint8_t rxLevel, uint8_t cwIdTXLevel, uint8_t dstarTXLevel, uint8_t dmrTXLevel, uint8_t ysfTXLevel, uint8_t p25TXLevel, uint8_t nxdnTXLevel, uint8_t pocsagTXLevel, int16_t txDCOffset, int16_t rxDCOffset)

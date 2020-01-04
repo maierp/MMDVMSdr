@@ -34,8 +34,6 @@ class CIO {
 public:
 	CIO();
 
-	void start();
-
 	void process();
 
 	void write(MMDVM_STATE mode, float* samples, uint16_t length, const uint8_t* control = NULL);
@@ -45,7 +43,6 @@ public:
 
 	void setDecode(bool dcd);
 	void setADCDetection(bool detect);
-	void setMode();
 
 	void interrupt();
 
@@ -64,8 +61,6 @@ public:
 	void selfTest();
 
 private:
-	bool                 m_started;
-
 	std::queue<std::pair<uint16_t, uint8_t>> m_rxBuffer;
 	std::queue<std::pair<uint16_t, uint8_t>> m_txBuffer;
 	std::queue<uint16_t> m_rssiBuffer;

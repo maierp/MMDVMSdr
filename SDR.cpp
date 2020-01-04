@@ -22,21 +22,25 @@
 
 void CSDR::setStreamState(bool isEnabled)
 {
-	if (isEnabled )
-	{
-		std::cout << "SDR: Enable Modem" << std::endl;
+    if (m_streamState != isEnabled)
+    {
+        if (isEnabled)
+        {
+            std::cout << "SDR: Enable Modem" << std::endl;
 
-		m_device->activateStream(m_TXstream);
-		m_numElems = m_device->getStreamMTU(m_TXstream); // Number of IQ pairs
-		std::cout << "SDR: NumElements: " << m_numElems << std::endl;
-	}
-	else
-	{
-		std::cout << "SDR: Disable Modem" << std::endl;
-		m_device->deactivateStream(m_TXstream);
-		//m_device->closeStream(m_stream);
-		//SoapySDR::Device::unmake(m_device);
-	}
+            m_device->activateStream(m_TXstream);
+            m_numElems = m_device->getStreamMTU(m_TXstream); // Number of IQ pairs
+            std::cout << "SDR: NumElements: " << m_numElems << std::endl;
+        }
+        else
+        {
+            std::cout << "SDR: Disable Modem" << std::endl;
+            m_device->deactivateStream(m_TXstream);
+            //m_device->closeStream(m_stream);
+            //SoapySDR::Device::unmake(m_device);
+        }
+        m_streamState = isEnabled;
+    }
 }
 
 int CSDR::readStreamStatus(int& flags)
@@ -48,23 +52,27 @@ int CSDR::readStreamStatus(int& flags)
 
 void CSDR::write(float* symbols, uint16_t length)
 {
+    int index = 0;
+    double two_pi = 2.0 * M_PI;
 	for (size_t j = 0; j < 20; j++) //4 Symbols with 5 Samples each
 	{
-		const float symbol = symbols[j] * m_phase_delta;
+		const double symbol = symbols[j] * m_phase_delta;
 		for (size_t i = 0; i < 51; i++)
 		{
 			m_sin_phase += symbol;
-			if (m_sin_phase >= 2 * M_PI)
+			if (m_sin_phase >= two_pi)
 			{
-				m_sin_phase -= 2 * M_PI;
+				m_sin_phase -= two_pi;
 			}
-			if (m_sin_phase <= -2 * M_PI)
+			if (m_sin_phase <= -two_pi)
 			{
-				m_sin_phase += 2 * M_PI;
+				m_sin_phase += two_pi;
 			}
 
-			m_TXBuffMem[0][(j * 51 * 2) + (2 * i)] = m_TXfullScale * std::sin(m_sin_phase);
-			m_TXBuffMem[0][(j * 51 * 2) + (2 * i) + 1] = m_TXfullScale * std::cos(m_sin_phase);
+			//m_TXBuffMem[0][(j * 51 * 2) + (2 * i)] = m_TXfullScale * std::sin(m_sin_phase);
+			//m_TXBuffMem[0][(j * 51 * 2) + (2 * i) + 1] = m_TXfullScale * std::cos(m_sin_phase);
+			m_TXBuffMem[0][index++] = m_TXfullScale * std::sin(m_sin_phase);
+			m_TXBuffMem[0][index++] = m_TXfullScale * std::cos(m_sin_phase);
 		}
 	}
 
@@ -85,6 +93,7 @@ void CSDR::read(float* symbols, uint16_t length)
 }
 
 CSDR::CSDR() :
+    m_streamState(false),
 	m_device(nullptr),
 	m_numChans(1),
 	m_samplerate(255 * 4800), //4800 symbols/s with 255 samples/symbol

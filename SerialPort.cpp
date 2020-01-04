@@ -197,7 +197,7 @@ void CSerialPort::getStatus()
 
 	reply[4U] = uint8_t(m_modemState);
 
-	reply[5U] = m_tx ? 0x01U : 0x00U;
+	reply[5U] = m_modemState == STATE_IDLE ? 0x00U : 0x01U;
 
 	bool adcOverflow(false);
 	bool dacOverflow(false);
@@ -375,8 +375,6 @@ uint8_t CSerialPort::setConfig(const uint8_t* data, uint8_t length)
 
 	io.setParameters(rxInvert, txInvert, pttInvert, rxLevel, cwIdTXLevel, dstarTXLevel, dmrTXLevel, ysfTXLevel, p25TXLevel, nxdnTXLevel, pocsagTXLevel, txDCOffset, rxDCOffset);
 
-	io.start();
-
 	return 0U;
 }
 
@@ -468,7 +466,6 @@ void CSerialPort::setMode(MMDVM_STATE modemState)
 
 	if (modemState != STATE_DMR) {
 		sdr.setStreamState(false);
-		m_tx = false;
 		//dmrIdleRX.reset();
 		//dmrDMORX.reset();
 		//dmrRX.reset();
@@ -487,9 +484,6 @@ void CSerialPort::setMode(MMDVM_STATE modemState)
 
 	m_modemState = modemState;
 	std::cout << "SerialPort::setMode() Set modemState to " << std::to_string(modemState) << std::endl;
-
-
-	io.setMode();
 }
 
 void CSerialPort::process()
@@ -643,7 +637,7 @@ void CSerialPort::process()
 					break;
 
 				case MMDVM_DMR_DATA1:
-					//std::cout << "MMDVM_DMR_DATA1 modemState:" << std::to_string(m_modemState) << std::endl;
+					std::cout << "MMDVM_DMR_DATA1" << std::endl;
 					if (m_dmrEnable) {
 						if (m_modemState == STATE_IDLE || m_modemState == STATE_DMR) {
 							if (m_duplex)
@@ -682,18 +676,16 @@ void CSerialPort::process()
 					break;
 
 				case MMDVM_DMR_START:
-					//std::cout << "MMDVM_DMR_START" << std::endl;
+					std::cout << "MMDVM_DMR_START" << std::endl;
 					if (m_dmrEnable) {
 						err = 4U;
 						if (m_len == 4U) {
 							if (m_buffer[3U] == 0x01U && m_modemState == STATE_DMR) {
-								if (!m_tx)
-									dmrTX.setStart(true);
+								dmrTX.setStart(true);
 								err = 0U;
 							}
 							else if (m_buffer[3U] == 0x00U && m_modemState == STATE_DMR) {
-								if (m_tx)
-									dmrTX.setStart(false);
+								dmrTX.setStart(false);
 								err = 0U;
 							}
 						}
