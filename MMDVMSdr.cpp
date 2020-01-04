@@ -75,72 +75,72 @@ CSDR sdr;
 
 void loop()
 {
-	serial.process();
+    serial.process();
 
-	io.process();
+    io.process();
 
-	// The following is for transmitting
-	//if (m_dstarEnable && m_modemState == STATE_DSTAR)
-	//	dstarTX.process();
+    // The following is for transmitting
+    //if (m_dstarEnable && m_modemState == STATE_DSTAR)
+    //    dstarTX.process();
 
-	//if (m_dmrEnable && m_modemState == STATE_DMR) {
-	//	//std::cout << "dmrEnable:" << m_dmrEnable << " modemState:" << std::to_string(m_modemState) << std::endl;
-	//	//if (m_duplex)
-	//		dmrTX.process();
-	//	//else
-	//	//	dmrDMOTX.process();
-	//}
+    //if (m_dmrEnable && m_modemState == STATE_DMR) {
+    //    //std::cout << "dmrEnable:" << m_dmrEnable << " modemState:" << std::to_string(m_modemState) << std::endl;
+    //    //if (m_duplex)
+    //        dmrTX.process();
+    //    //else
+    //    //    dmrDMOTX.process();
+    //}
 
-	//if (m_ysfEnable && m_modemState == STATE_YSF)
-	//	ysfTX.process();
+    //if (m_ysfEnable && m_modemState == STATE_YSF)
+    //    ysfTX.process();
 
-	//if (m_p25Enable && m_modemState == STATE_P25)
-	//	p25TX.process();
+    //if (m_p25Enable && m_modemState == STATE_P25)
+    //    p25TX.process();
 
-	//if (m_nxdnEnable && m_modemState == STATE_NXDN)
-	//	nxdnTX.process();
+    //if (m_nxdnEnable && m_modemState == STATE_NXDN)
+    //    nxdnTX.process();
 
-	//if (m_pocsagEnable && (m_modemState == STATE_POCSAG || pocsagTX.busy()))
-	//	pocsagTX.process();
+    //if (m_pocsagEnable && (m_modemState == STATE_POCSAG || pocsagTX.busy()))
+    //    pocsagTX.process();
 
-	//if (m_modemState == STATE_DSTARCAL)
-	//	calDStarTX.process();
+    //if (m_modemState == STATE_DSTARCAL)
+    //    calDStarTX.process();
 
-	//if (m_modemState == STATE_DMRCAL || m_modemState == STATE_LFCAL || m_modemState == STATE_DMRCAL1K || m_modemState == STATE_DMRDMO1K)
-	//	calDMR.process();
+    //if (m_modemState == STATE_DMRCAL || m_modemState == STATE_LFCAL || m_modemState == STATE_DMRCAL1K || m_modemState == STATE_DMRDMO1K)
+    //    calDMR.process();
 
-	//if (m_modemState == STATE_P25CAL1K)
-	//	calP25.process();
+    //if (m_modemState == STATE_P25CAL1K)
+    //    calP25.process();
 
-	//if (m_modemState == STATE_NXDNCAL1K)
-	//	calNXDN.process();
+    //if (m_modemState == STATE_NXDNCAL1K)
+    //    calNXDN.process();
 
-	//if (m_modemState == STATE_POCSAGCAL)
-	//	calPOCSAG.process();
+    //if (m_modemState == STATE_POCSAGCAL)
+    //    calPOCSAG.process();
 
-	//if (m_modemState == STATE_IDLE)
-	//	cwIdTX.process();
+    //if (m_modemState == STATE_IDLE)
+    //    cwIdTX.process();
 }
 
 void dmrThreadTXProcess()
 {
-	while (true)
-	{
-		if (m_dmrEnable && m_modemState == STATE_DMR) {
-			dmrTX.process();
-		}
-		else {
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
-		}
-	}
+    while (true)
+    {
+        if (m_dmrEnable && m_modemState == STATE_DMR) {
+            dmrTX.process();
+        }
+        else {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+    }
 }
 
 void dmrThreadRXProcess()
 {
-	//while (true)
-	//{
-	//	dmrRX.process();
-	//}
+    //while (true)
+    //{
+    //    dmrRX.process();
+    //}
 }
 
 /***********************************************************************
@@ -148,11 +148,11 @@ void dmrThreadRXProcess()
  **********************************************************************/
 int main()
 {
-	cout << "MMDVM-SDR is starting" << endl;
+    cout << "MMDVM-SDR is starting" << endl;
 
-	std::thread dmrThread(dmrThreadTXProcess);
-	for (;;)
-		loop();
+    std::thread dmrThread(dmrThreadTXProcess);
+    for (;;)
+        loop();
 
-	return 0;
+    return 0;
 }

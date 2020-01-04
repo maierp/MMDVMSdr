@@ -24,16 +24,16 @@
 
 class CDMRSlotType {
 public:
-	CDMRSlotType();
+    CDMRSlotType();
 
-	void decode(const uint8_t* frame, uint8_t& colorCode, uint8_t& dataType) const;
+    void decode(const uint8_t* frame, uint8_t& colorCode, uint8_t& dataType) const;
 
-	void encode(uint8_t colorCode, uint8_t dataType, uint8_t* frame) const;
+    void encode(uint8_t colorCode, uint8_t dataType, uint8_t* frame) const;
 
 private:
 
-	uint8_t  decode2087(const uint8_t* data) const;
-	uint32_t getSyndrome1987(uint32_t pattern) const;
+    uint8_t  decode2087(const uint8_t* data) const;
+    uint32_t getSyndrome1987(uint32_t pattern) const;
 };
 
 #endif

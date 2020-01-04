@@ -58,31 +58,31 @@ const uint32_t STARTUP_COUNT = 0U; //20U
 const uint32_t ABORT_COUNT = 6U;
 
 CDMRTX::CDMRTX() :
-	m_fifo(),
-	m_state(DMRTXSTATE_IDLE),
-	m_idle(),
-	m_cachPtr(0U),
-	m_shortLC(),
-	m_newShortLC(),
-	m_markBuffer(),
-	m_poBuffer(),
-	m_poLen(0U),
-	m_poPtr(0U),
-	m_frameCount(0U),
-	m_abortCount(),
-	m_abort(),
+    m_fifo(),
+    m_state(DMRTXSTATE_IDLE),
+    m_idle(),
+    m_cachPtr(0U),
+    m_shortLC(),
+    m_newShortLC(),
+    m_markBuffer(),
+    m_poBuffer(),
+    m_poLen(0U),
+    m_poPtr(0U),
+    m_frameCount(0U),
+    m_abortCount(),
+    m_abort(),
     m_poSemaphore()
 {
-	m_rrc_interp_filter_obj = firinterp_rrrf_create_prototype(LIQUID_FIRFILT_RRC, 5, 4, 0.2, 0); // 4 Symbols with 5 interpolation samples each
+    m_rrc_interp_filter_obj = firinterp_rrrf_create_prototype(LIQUID_FIRFILT_RRC, 5, 4, 0.2, 0); // 4 Symbols with 5 interpolation samples each
 
-	std::copy(std::begin(EMPTY_SHORT_LC), std::end(EMPTY_SHORT_LC), std::begin(m_newShortLC));
-	std::copy(std::begin(EMPTY_SHORT_LC), std::end(EMPTY_SHORT_LC), std::begin(m_shortLC));
+    std::copy(std::begin(EMPTY_SHORT_LC), std::end(EMPTY_SHORT_LC), std::begin(m_newShortLC));
+    std::copy(std::begin(EMPTY_SHORT_LC), std::end(EMPTY_SHORT_LC), std::begin(m_shortLC));
 
-	m_abort[0U] = false;
-	m_abort[1U] = false;
+    m_abort[0U] = false;
+    m_abort[1U] = false;
 
-	m_abortCount[0U] = 0U;
-	m_abortCount[1U] = 0U;
+    m_abortCount[0U] = 0U;
+    m_abortCount[1U] = 0U;
 
     m_poSemaphore.push_back(new Semaphore());
     m_poSemaphore.push_back(new Semaphore());
@@ -90,136 +90,136 @@ CDMRTX::CDMRTX() :
 
 void CDMRTX::process()
 {
-	if (m_state == DMRTXSTATE_IDLE) {
-		std::this_thread::sleep_for(std::chrono::milliseconds(1));
-		return;
-	}
+    if (m_state == DMRTXSTATE_IDLE) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        return;
+    }
 
-	if (m_poLen == 0U) {
-		sdr.setStreamState(true); // Turn on SDR if not already
-		switch (m_state) {
-		case DMRTXSTATE_SLOT1:
-			m_poSemaphore[0U]->wait();
-			createData(0U);
-			m_state = DMRTXSTATE_CACH2;
-			break;
+    if (m_poLen == 0U) {
+        sdr.setStreamState(true); // Turn on SDR if not already
+        switch (m_state) {
+        case DMRTXSTATE_SLOT1:
+            m_poSemaphore[0U]->wait();
+            createData(0U);
+            m_state = DMRTXSTATE_CACH2;
+            break;
 
-		case DMRTXSTATE_CACH2:
-			createCACH(1U, 0U);
-			m_state = DMRTXSTATE_SLOT2;
-			break;
+        case DMRTXSTATE_CACH2:
+            createCACH(1U, 0U);
+            m_state = DMRTXSTATE_SLOT2;
+            break;
 
-		case DMRTXSTATE_SLOT2:
-			m_poSemaphore[0U]->wait();
-			createData(1U);
-			m_state = DMRTXSTATE_CACH1;
-			break;
+        case DMRTXSTATE_SLOT2:
+            m_poSemaphore[0U]->wait();
+            createData(1U);
+            m_state = DMRTXSTATE_CACH1;
+            break;
 
-		case DMRTXSTATE_CAL:
-			createCal();
-			break;
+        case DMRTXSTATE_CAL:
+            createCal();
+            break;
 
-		default:
-			createCACH(0U, 1U);
-			m_state = DMRTXSTATE_SLOT1;
-			break;
-		}
-	}
+        default:
+            createCACH(0U, 1U);
+            m_state = DMRTXSTATE_SLOT1;
+            break;
+        }
+    }
 
-	if (m_poLen > 0U) {
-		while (m_poPtr < m_poLen) {
-			uint8_t c = m_poBuffer[m_poPtr];
-			uint8_t m = m_markBuffer[m_poPtr];
-			m_poPtr++;
-			writeByte(c, m);
-			//readByte();
-		}
-		m_poPtr = 0U;
-		m_poLen = 0U;
-	}
+    if (m_poLen > 0U) {
+        while (m_poPtr < m_poLen) {
+            uint8_t c = m_poBuffer[m_poPtr];
+            uint8_t m = m_markBuffer[m_poPtr];
+            m_poPtr++;
+            writeByte(c, m);
+            //readByte();
+        }
+        m_poPtr = 0U;
+        m_poLen = 0U;
+    }
 }
 
 uint8_t CDMRTX::writeData1(const uint8_t* data, uint8_t length)
 {
-	if (length != (DMR_FRAME_LENGTH_BYTES + 1U))
-		return 4U;
+    if (length != (DMR_FRAME_LENGTH_BYTES + 1U))
+        return 4U;
 
-	if (m_abort[0U]) {
-		std::queue<uint8_t>().swap(m_fifo[0U]); //clear the buffer
-		m_abort[0U] = false;
-	}
+    if (m_abort[0U]) {
+        std::queue<uint8_t>().swap(m_fifo[0U]); //clear the buffer
+        m_abort[0U] = false;
+    }
 
-	for (uint8_t i = 0U; i < DMR_FRAME_LENGTH_BYTES; i++)
-		m_fifo[0U].push(data[i + 1U]);
-	//std::cout << "CDMRTX::writeData1(): m_fifo[0].size:" << std::to_string(m_fifo[0U].size()) << std::endl;
+    for (uint8_t i = 0U; i < DMR_FRAME_LENGTH_BYTES; i++)
+        m_fifo[0U].push(data[i + 1U]);
+    //std::cout << "CDMRTX::writeData1(): m_fifo[0].size:" << std::to_string(m_fifo[0U].size()) << std::endl;
 
-	if (m_state == DMRTXSTATE_IDLE)
-	{
-		m_state = DMRTXSTATE_SLOT1;
-	}
+    if (m_state == DMRTXSTATE_IDLE)
+    {
+        m_state = DMRTXSTATE_SLOT1;
+    }
 
-	m_poSemaphore[0U]->notify();
-	return 0U;
+    m_poSemaphore[0U]->notify();
+    return 0U;
 }
 
 uint8_t CDMRTX::writeData2(const uint8_t* data, uint8_t length)
 {
-	if (length != (DMR_FRAME_LENGTH_BYTES + 1U))
-		return 4U;
+    if (length != (DMR_FRAME_LENGTH_BYTES + 1U))
+        return 4U;
 
-	if (m_abort[1U]) {
-		std::queue<uint8_t>().swap(m_fifo[1U]); //clear the buffer
-		m_abort[1U] = false;
-	}
+    if (m_abort[1U]) {
+        std::queue<uint8_t>().swap(m_fifo[1U]); //clear the buffer
+        m_abort[1U] = false;
+    }
 
-	for (uint8_t i = 0U; i < DMR_FRAME_LENGTH_BYTES; i++)
-		m_fifo[1U].push(data[i + 1U]);
-	//std::cout << "CDMRTX::writeData2(): m_fifo[1].size:" << std::to_string(m_fifo[1U].size()) << std::endl;
+    for (uint8_t i = 0U; i < DMR_FRAME_LENGTH_BYTES; i++)
+        m_fifo[1U].push(data[i + 1U]);
+    //std::cout << "CDMRTX::writeData2(): m_fifo[1].size:" << std::to_string(m_fifo[1U].size()) << std::endl;
 
-	if (m_state == DMRTXSTATE_IDLE)
-	{
-		m_state = DMRTXSTATE_SLOT2;
-	}
+    if (m_state == DMRTXSTATE_IDLE)
+    {
+        m_state = DMRTXSTATE_SLOT2;
+    }
 
-	m_poSemaphore[0U]->notify();
-	return 0U;
+    m_poSemaphore[0U]->notify();
+    return 0U;
 }
 
 uint8_t CDMRTX::writeShortLC(const uint8_t* data, uint8_t length)
 {
-	if (length != 9U)
-		return 4U;
+    if (length != 9U)
+        return 4U;
 
-	std::fill_n(m_newShortLC, 12U, 0x00U);
+    std::fill_n(m_newShortLC, 12U, 0x00U);
 
-	for (uint8_t i = 0U; i < 68U; i++) {
-		bool b = READ_BIT1(data, i);
-		uint8_t n = CACH_INTERLEAVE[i];
-		WRITE_BIT1(m_newShortLC, n, b);
-	}
+    for (uint8_t i = 0U; i < 68U; i++) {
+        bool b = READ_BIT1(data, i);
+        uint8_t n = CACH_INTERLEAVE[i];
+        WRITE_BIT1(m_newShortLC, n, b);
+    }
 
-	return 0U;
+    return 0U;
 }
 
 uint8_t CDMRTX::writeAbort(const uint8_t* data, uint8_t length)
 {
-	if (length != 1U)
-		return 4U;
+    if (length != 1U)
+        return 4U;
 
-	switch (data[0U]) {
-	case 1U:
-		m_abortCount[0U] = 0U;
-		m_abort[0U] = true;
-		return 0U;
+    switch (data[0U]) {
+    case 1U:
+        m_abortCount[0U] = 0U;
+        m_abort[0U] = true;
+        return 0U;
 
-	case 2U:
-		m_abortCount[1U] = 0U;
-		m_abort[1U] = true;
-		return 0U;
+    case 2U:
+        m_abortCount[1U] = 0U;
+        m_abort[1U] = true;
+        return 0U;
 
-	default:
-		return 4U;
-	}
+    default:
+        return 4U;
+    }
 }
 
 void CDMRTX::setStart(bool start)
@@ -228,92 +228,92 @@ void CDMRTX::setStart(bool start)
         return;
 
     m_state = start ? DMRTXSTATE_SLOT1 : DMRTXSTATE_IDLE;
-	std::cout << "CDMRTX::setStart() m_state" << std::to_string(m_state) << std::endl;
+    std::cout << "CDMRTX::setStart() m_state" << std::to_string(m_state) << std::endl;
 
-	m_frameCount = 0U;
-	m_abortCount[0U] = 0U;
-	m_abortCount[1U] = 0U;
+    m_frameCount = 0U;
+    m_abortCount[0U] = 0U;
+    m_abortCount[1U] = 0U;
 
-	m_abort[0U] = false;
-	m_abort[1U] = false;
+    m_abort[0U] = false;
+    m_abort[1U] = false;
 }
 
 void CDMRTX::setCal(bool start)
 {
-	m_state = start ? DMRTXSTATE_CAL : DMRTXSTATE_IDLE;
-	std::cout << "CDMRTX::setCal() m_state" << std::to_string(m_state) << std::endl;
+    m_state = start ? DMRTXSTATE_CAL : DMRTXSTATE_IDLE;
+    std::cout << "CDMRTX::setCal() m_state" << std::to_string(m_state) << std::endl;
 }
 
 void CDMRTX::writeByte(uint8_t c, uint8_t control)
 {
-	float inBuffer[4U];
-	float outBuffer[DMR_RADIO_SYMBOL_LENGTH * 4U];
+    float inBuffer[4U];
+    float outBuffer[DMR_RADIO_SYMBOL_LENGTH * 4U];
 
-	const uint8_t MASK = 0xC0U;
-	for (uint8_t i = 0U; i < 4U; i++, c <<= 2) {
-		switch (c & MASK) {
-		case 0xC0U:
-			inBuffer[i] = DMR_FREQ_A;
-			break;
-		case 0x80U:
-			inBuffer[i] = DMR_FREQ_B;
-			break;
-		case 0x00U:
-			inBuffer[i] = DMR_FREQ_C;
-			break;
-		default:
-			inBuffer[i] = DMR_FREQ_D;
-			break;
-		}
-	}
+    const uint8_t MASK = 0xC0U;
+    for (uint8_t i = 0U; i < 4U; i++, c <<= 2) {
+        switch (c & MASK) {
+        case 0xC0U:
+            inBuffer[i] = DMR_FREQ_A;
+            break;
+        case 0x80U:
+            inBuffer[i] = DMR_FREQ_B;
+            break;
+        case 0x00U:
+            inBuffer[i] = DMR_FREQ_C;
+            break;
+        default:
+            inBuffer[i] = DMR_FREQ_D;
+            break;
+        }
+    }
 
-	uint8_t controlBuffer[DMR_RADIO_SYMBOL_LENGTH * 4U];
-	std::fill_n(controlBuffer, DMR_RADIO_SYMBOL_LENGTH * 4U, MARK_NONE);
-	controlBuffer[DMR_RADIO_SYMBOL_LENGTH * 2U] = control;
+    uint8_t controlBuffer[DMR_RADIO_SYMBOL_LENGTH * 4U];
+    std::fill_n(controlBuffer, DMR_RADIO_SYMBOL_LENGTH * 4U, MARK_NONE);
+    controlBuffer[DMR_RADIO_SYMBOL_LENGTH * 2U] = control;
 
-	firinterp_rrrf_execute_block(m_rrc_interp_filter_obj, inBuffer, 4U, outBuffer);
-	//float* pOutBuffer = std::begin(outBuffer);
-	//for (uint8_t i = 0U; i < 4U; i++)
-	//{
-	//	pOutBuffer = std::fill_n(pOutBuffer, 5U, inBuffer[i]);
+    firinterp_rrrf_execute_block(m_rrc_interp_filter_obj, inBuffer, 4U, outBuffer);
+    //float* pOutBuffer = std::begin(outBuffer);
+    //for (uint8_t i = 0U; i < 4U; i++)
+    //{
+    //    pOutBuffer = std::fill_n(pOutBuffer, 5U, inBuffer[i]);
 
-	//}
+    //}
 
-	io.write(STATE_DMR, outBuffer, 20U, controlBuffer);
+    io.write(STATE_DMR, outBuffer, 20U, controlBuffer);
 }
 
 void CDMRTX::readByte()
 {
-	io.read();
+    io.read();
 }
 
 uint8_t CDMRTX::getSpace1() const
 {
-	return 10; // Like empty ringbuffer //m_fifo[0U].getSpace() / (DMR_FRAME_LENGTH_BYTES + 2U);
+    return 10; // Like empty ringbuffer //m_fifo[0U].getSpace() / (DMR_FRAME_LENGTH_BYTES + 2U);
 }
 
 uint8_t CDMRTX::getSpace2() const
 {
-	return 10; // Like empty ringbuffer // m_fifo[1U].getSpace() / (DMR_FRAME_LENGTH_BYTES + 2U);
+    return 10; // Like empty ringbuffer // m_fifo[1U].getSpace() / (DMR_FRAME_LENGTH_BYTES + 2U);
 }
 
 void CDMRTX::createData(uint8_t slotIndex)
 {
-	if (m_fifo[slotIndex].size() >= DMR_FRAME_LENGTH_BYTES && m_frameCount >= STARTUP_COUNT && m_abortCount[slotIndex] >= ABORT_COUNT) {
-		for (unsigned int i = 0U; i < DMR_FRAME_LENGTH_BYTES; i++) {
-			m_poBuffer[i] = m_fifo[slotIndex].front();
-			m_fifo[slotIndex].pop();
-			m_markBuffer[i] = MARK_NONE;
-		}
-		//std::cout << "CDMRTX::createData() m_fifo.size() " << std::to_string(m_fifo[slotIndex].size()) << std::endl;
-	}
-	else {
-		m_abort[slotIndex] = false;
-		// Transmit an idle message
-		for (unsigned int i = 0U; i < DMR_FRAME_LENGTH_BYTES; i++) {
-			m_poBuffer[i] = m_idle[i];
-			m_markBuffer[i] = MARK_NONE;
-		}
+    if (m_fifo[slotIndex].size() >= DMR_FRAME_LENGTH_BYTES && m_frameCount >= STARTUP_COUNT && m_abortCount[slotIndex] >= ABORT_COUNT) {
+        for (unsigned int i = 0U; i < DMR_FRAME_LENGTH_BYTES; i++) {
+            m_poBuffer[i] = m_fifo[slotIndex].front();
+            m_fifo[slotIndex].pop();
+            m_markBuffer[i] = MARK_NONE;
+        }
+        //std::cout << "CDMRTX::createData() m_fifo.size() " << std::to_string(m_fifo[slotIndex].size()) << std::endl;
+    }
+    else {
+        m_abort[slotIndex] = false;
+        // Transmit an idle message
+        for (unsigned int i = 0U; i < DMR_FRAME_LENGTH_BYTES; i++) {
+            m_poBuffer[i] = m_idle[i];
+            m_markBuffer[i] = MARK_NONE;
+        }
         //std::cout << "CDMRTX::createData(IDLE_MESSAGE) m_fifo.size() " << std::to_string(m_fifo[slotIndex].size()) << std::endl;
 
         // If we are in the startup or abort phase, regenerate semaphore
@@ -322,118 +322,118 @@ void CDMRTX::createData(uint8_t slotIndex)
         }
     }
 
-	m_poLen = DMR_FRAME_LENGTH_BYTES;
-	m_poPtr = 0U;
+    m_poLen = DMR_FRAME_LENGTH_BYTES;
+    m_poPtr = 0U;
 }
 
 void CDMRTX::createCal()
 {
-	// 1.2 kHz sine wave generation
-	if (m_modemState == STATE_DMRCAL) {
-		for (unsigned int i = 0U; i < DMR_FRAME_LENGTH_BYTES; i++) {
-			m_poBuffer[i] = 0x5FU;              // +3, +3, -3, -3 pattern for deviation cal.
-			m_markBuffer[i] = MARK_NONE;
-		}
+    // 1.2 kHz sine wave generation
+    if (m_modemState == STATE_DMRCAL) {
+        for (unsigned int i = 0U; i < DMR_FRAME_LENGTH_BYTES; i++) {
+            m_poBuffer[i] = 0x5FU;              // +3, +3, -3, -3 pattern for deviation cal.
+            m_markBuffer[i] = MARK_NONE;
+        }
 
-		m_poLen = DMR_FRAME_LENGTH_BYTES;
-	}
+        m_poLen = DMR_FRAME_LENGTH_BYTES;
+    }
 
-	// 80 Hz square wave generation
-	if (m_modemState == STATE_LFCAL) {
-		for (unsigned int i = 0U; i < 7U; i++) {
-			m_poBuffer[i] = 0x55U;              // +3, +3, ... pattern
-			m_markBuffer[i] = MARK_NONE;
-		}
+    // 80 Hz square wave generation
+    if (m_modemState == STATE_LFCAL) {
+        for (unsigned int i = 0U; i < 7U; i++) {
+            m_poBuffer[i] = 0x55U;              // +3, +3, ... pattern
+            m_markBuffer[i] = MARK_NONE;
+        }
 
-		m_poBuffer[7U] = 0x5FU;               // +3, +3, -3, -3 pattern
+        m_poBuffer[7U] = 0x5FU;               // +3, +3, -3, -3 pattern
 
-		for (unsigned int i = 8U; i < 15U; i++) {
-			m_poBuffer[i] = 0xFFU;              // -3, -3, ... pattern
-			m_markBuffer[i] = MARK_NONE;
-		}
+        for (unsigned int i = 8U; i < 15U; i++) {
+            m_poBuffer[i] = 0xFFU;              // -3, -3, ... pattern
+            m_markBuffer[i] = MARK_NONE;
+        }
 
-		m_poLen = 15U;
-	}
+        m_poLen = 15U;
+    }
 
-	m_poPtr = 0U;
+    m_poPtr = 0U;
 }
 
 void CDMRTX::createCACH(uint8_t txSlotIndex, uint8_t rxSlotIndex)
 {
-	m_frameCount++;
-	m_abortCount[0U]++;
-	m_abortCount[1U]++;
+    m_frameCount++;
+    m_abortCount[0U]++;
+    m_abortCount[1U]++;
 
-	if (m_cachPtr >= 12U)
-		m_cachPtr = 0U;
+    if (m_cachPtr >= 12U)
+        m_cachPtr = 0U;
 
-	if (m_cachPtr == 0U) {
-		if (m_fifo[0U].size() == 0U && m_fifo[1U].size() == 0U) {
-			std::copy(std::begin(EMPTY_SHORT_LC), std::end(EMPTY_SHORT_LC), std::begin(m_shortLC));
-		}
-		else {
-			std::copy(std::begin(m_newShortLC), std::end(m_newShortLC), std::begin(m_shortLC));
-		}
-	}
+    if (m_cachPtr == 0U) {
+        if (m_fifo[0U].size() == 0U && m_fifo[1U].size() == 0U) {
+            std::copy(std::begin(EMPTY_SHORT_LC), std::end(EMPTY_SHORT_LC), std::begin(m_shortLC));
+        }
+        else {
+            std::copy(std::begin(m_newShortLC), std::end(m_newShortLC), std::begin(m_shortLC));
+        }
+    }
 
-	std::copy(m_shortLC + m_cachPtr, m_shortLC + m_cachPtr + 3U, m_poBuffer);
-	//::memcpy(m_poBuffer, m_shortLC + m_cachPtr, 3U);
-	m_markBuffer[0U] = MARK_NONE;
-	m_markBuffer[1U] = MARK_NONE;
-	m_markBuffer[2U] = rxSlotIndex == 1U ? MARK_SLOT1 : MARK_SLOT2;
+    std::copy(m_shortLC + m_cachPtr, m_shortLC + m_cachPtr + 3U, m_poBuffer);
+    //::memcpy(m_poBuffer, m_shortLC + m_cachPtr, 3U);
+    m_markBuffer[0U] = MARK_NONE;
+    m_markBuffer[1U] = MARK_NONE;
+    m_markBuffer[2U] = rxSlotIndex == 1U ? MARK_SLOT1 : MARK_SLOT2;
 
-	bool at = false;
-	if (m_frameCount >= STARTUP_COUNT)
-		at = m_fifo[rxSlotIndex].size() > 0U;
-	bool tc = txSlotIndex == 1U;
-	bool ls0 = true;            // For 1 and 2
-	bool ls1 = true;
+    bool at = false;
+    if (m_frameCount >= STARTUP_COUNT)
+        at = m_fifo[rxSlotIndex].size() > 0U;
+    bool tc = txSlotIndex == 1U;
+    bool ls0 = true;            // For 1 and 2
+    bool ls1 = true;
 
-	if (m_cachPtr == 0U)          // For 0
-		ls1 = false;
-	else if (m_cachPtr == 9U)     // For 3
-		ls0 = false;
+    if (m_cachPtr == 0U)          // For 0
+        ls1 = false;
+    else if (m_cachPtr == 9U)     // For 3
+        ls0 = false;
 
-	bool h0 = at ^ tc ^ ls1;
-	bool h1 = tc ^ ls1 ^ ls0;
-	bool h2 = at ^ tc ^ ls0;
+    bool h0 = at ^ tc ^ ls1;
+    bool h1 = tc ^ ls1 ^ ls0;
+    bool h2 = at ^ tc ^ ls0;
 
-	m_poBuffer[0U] |= at ? 0x80U : 0x00U;
-	m_poBuffer[0U] |= tc ? 0x08U : 0x00U;
-	m_poBuffer[1U] |= ls1 ? 0x80U : 0x00U;
-	m_poBuffer[1U] |= ls0 ? 0x08U : 0x00U;
-	m_poBuffer[1U] |= h0 ? 0x02U : 0x00U;
-	m_poBuffer[2U] |= h1 ? 0x20U : 0x00U;
-	m_poBuffer[2U] |= h2 ? 0x02U : 0x00U;
+    m_poBuffer[0U] |= at ? 0x80U : 0x00U;
+    m_poBuffer[0U] |= tc ? 0x08U : 0x00U;
+    m_poBuffer[1U] |= ls1 ? 0x80U : 0x00U;
+    m_poBuffer[1U] |= ls0 ? 0x08U : 0x00U;
+    m_poBuffer[1U] |= h0 ? 0x02U : 0x00U;
+    m_poBuffer[2U] |= h1 ? 0x20U : 0x00U;
+    m_poBuffer[2U] |= h2 ? 0x02U : 0x00U;
 
-	m_poLen = DMR_CACH_LENGTH_BYTES;
-	m_poPtr = 0U;
+    m_poLen = DMR_CACH_LENGTH_BYTES;
+    m_poPtr = 0U;
 
-	m_cachPtr += 3U;
+    m_cachPtr += 3U;
     //std::cout << "CDMRTX::createCACH() " << std::to_string(txSlotIndex) << " " << std::to_string(rxSlotIndex) << std::endl;
 
 }
 
 void CDMRTX::setColorCode(uint8_t colorCode)
 {
-	std::copy(IDLE_DATA, IDLE_DATA + DMR_FRAME_LENGTH_BYTES, m_idle);
-	//::memcpy(m_idle, IDLE_DATA, DMR_FRAME_LENGTH_BYTES);
+    std::copy(IDLE_DATA, IDLE_DATA + DMR_FRAME_LENGTH_BYTES, m_idle);
+    //::memcpy(m_idle, IDLE_DATA, DMR_FRAME_LENGTH_BYTES);
 
-	CDMRSlotType slotType;
-	slotType.encode(colorCode, DT_IDLE, m_idle);
+    CDMRSlotType slotType;
+    slotType.encode(colorCode, DT_IDLE, m_idle);
 }
 
 void CDMRTX::resetFifo1()
 {
-	std::queue<uint8_t>().swap(m_fifo[0U]); //clear the buffer
+    std::queue<uint8_t>().swap(m_fifo[0U]); //clear the buffer
 }
 
 void CDMRTX::resetFifo2()
 {
-	std::queue<uint8_t>().swap(m_fifo[1U]); //clear the buffer
+    std::queue<uint8_t>().swap(m_fifo[1U]); //clear the buffer
 }
 
 uint32_t CDMRTX::getFrameCount()
 {
-	return m_frameCount;
+    return m_frameCount;
 }
