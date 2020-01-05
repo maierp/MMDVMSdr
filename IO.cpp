@@ -480,14 +480,14 @@ void CIO::process()
     }
 }
 
-void CIO::write(MMDVM_STATE mode, float* symbols, uint16_t length, const uint8_t* control)
+void CIO::write(MMDVM_STATE mode, std::vector<int16_t> &samples, uint16_t length, const uint8_t* control)
 {
     if (m_lockout) {
         std::cout << "CIO::write() lockout" << std::endl;
         return;
     }
 
-    sdr.write(symbols, length);
+    sdr.write(samples, length);
 
 
 

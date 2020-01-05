@@ -36,7 +36,7 @@ public:
 
     void process();
 
-    void write(MMDVM_STATE mode, float* samples, uint16_t length, const uint8_t* control = NULL);
+    void write(MMDVM_STATE mode, std::vector<int16_t> &samples, uint16_t length, const uint8_t* control = NULL);
     void read();
 
     uint16_t getSpace() const;

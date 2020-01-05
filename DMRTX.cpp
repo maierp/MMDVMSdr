@@ -29,10 +29,13 @@
 #include "Globals.h"
 #include "DMRSlotType.h"
 
-const float DMR_FREQ_A = 1944; //+1.944Hz
-const float DMR_FREQ_B = 648;  //  +648Hz
-const float DMR_FREQ_C = -648; //  -648Hz
-const float DMR_FREQ_D = -1944; //-1.944Hz
+const float DMR_MAX_FREQ_DEV = 1944; // 1.944 kHz | 648 Hz | -648 Hz | -1.944 kHz
+const double SAMPLERATE = 255 * 4800; //4800 symbols/s with 255 samples/symbol
+
+const float DMR_SYMBOL_A = 1.0f;
+const float DMR_SYMBOL_B = 1.0f / 3.0f;
+const float DMR_SYMBOL_C = -1.0f / 3.0f;
+const float DMR_SYMBOL_D = -1.0f;
 
 // The PR FILL and BS Data Sync pattern.
 const uint8_t IDLE_DATA[] =
@@ -58,6 +61,8 @@ const uint32_t STARTUP_COUNT = 0U; //20U
 const uint32_t ABORT_COUNT = 6U;
 
 CDMRTX::CDMRTX() :
+    m_fmod(freqmod_create(DMR_MAX_FREQ_DEV / SAMPLERATE /* modulation index */)),
+    m_sampleBuffer(2 * 1020),
     m_fifo(),
     m_state(DMRTXSTATE_IDLE),
     m_idle(),
@@ -246,23 +251,25 @@ void CDMRTX::setCal(bool start)
 
 void CDMRTX::writeByte(uint8_t c, uint8_t control)
 {
+    double TXFullScale = sdr.getTXFullScale();
     float inBuffer[4U];
     float outBuffer[DMR_RADIO_SYMBOL_LENGTH * 4U];
 
+    // Extract 4 symbols from each byte
     const uint8_t MASK = 0xC0U;
     for (uint8_t i = 0U; i < 4U; i++, c <<= 2) {
         switch (c & MASK) {
         case 0xC0U:
-            inBuffer[i] = DMR_FREQ_A;
+            inBuffer[i] = DMR_SYMBOL_A;
             break;
         case 0x80U:
-            inBuffer[i] = DMR_FREQ_B;
+            inBuffer[i] = DMR_SYMBOL_B;
             break;
         case 0x00U:
-            inBuffer[i] = DMR_FREQ_C;
+            inBuffer[i] = DMR_SYMBOL_C;
             break;
         default:
-            inBuffer[i] = DMR_FREQ_D;
+            inBuffer[i] = DMR_SYMBOL_D;
             break;
         }
     }
@@ -271,15 +278,23 @@ void CDMRTX::writeByte(uint8_t c, uint8_t control)
     std::fill_n(controlBuffer, DMR_RADIO_SYMBOL_LENGTH * 4U, MARK_NONE);
     controlBuffer[DMR_RADIO_SYMBOL_LENGTH * 2U] = control;
 
+    // Interpolate each symbol to 5 samples each using square root raised cosine filter
     firinterp_rrrf_execute_block(m_rrc_interp_filter_obj, inBuffer, 4U, outBuffer);
-    //float* pOutBuffer = std::begin(outBuffer);
-    //for (uint8_t i = 0U; i < 4U; i++)
-    //{
-    //    pOutBuffer = std::fill_n(pOutBuffer, 5U, inBuffer[i]);
 
-    //}
+    // Do the FM modulation and store the samples in m_sampleBuffer
+    int index = 0;
+    liquid_float_complex s;
+    for (size_t j = 0; j < 4U * DMR_RADIO_SYMBOL_LENGTH; j++) //4 Symbols with 5 Samples each
+    {
+        for (size_t i = 0; i < 51; i++)
+        {
+            freqmod_modulate(m_fmod, outBuffer[j], &s);
+            m_sampleBuffer[index++] = TXFullScale * s.imag;
+            m_sampleBuffer[index++] = TXFullScale * s.real;
+        }
+    }
 
-    io.write(STATE_DMR, outBuffer, 20U, controlBuffer);
+    io.write(STATE_DMR, m_sampleBuffer, 2040U, controlBuffer);
 }
 
 void CDMRTX::readByte()

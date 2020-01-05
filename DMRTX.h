@@ -62,6 +62,8 @@ public:
     void setColorCode(uint8_t colorCode);
 
 private:
+    freqmod                          m_fmod;
+    std::vector<int16_t>             m_sampleBuffer;
     std::queue<uint8_t>              m_fifo[2U];
     firinterp_rrrf                   m_rrc_interp_filter_obj;
     DMRTXSTATE                       m_state;

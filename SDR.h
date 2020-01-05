@@ -24,6 +24,7 @@
 #include <SoapySDR/Registry.hpp>
 #include <SoapySDR/Device.hpp>
 #include <SoapySDR/Formats.hpp>
+#include <liquid/liquid.h>
 #include <cstdint>
 
 class CSDR {
@@ -32,7 +33,8 @@ public:
     uint8_t setFrequency(const uint8_t* data, uint8_t length);
     void setStreamState(bool isEnabled);
     int readStreamStatus(int& flags);
-    void write(float* symbols, uint16_t length);
+    double getTXFullScale();
+    void write(std::vector<int16_t> &samples, uint16_t length);
     void read(float* symbols, uint16_t length);
 
 private:
@@ -49,8 +51,6 @@ private:
     uint32_t          m_txFrequency;
     uint32_t          m_rxFrequency;
     double            m_samplerate;
-    double            m_sin_phase;
-    double            m_phase_delta;
     std::vector<std::vector<int16_t>> m_TXBuffMem;
     std::vector<void*> m_TXBuffs;
     std::vector<std::vector<int16_t>> m_RXBuffMem;

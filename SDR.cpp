@@ -50,33 +50,15 @@ int CSDR::readStreamStatus(int& flags)
     return m_device->readStreamStatus(m_TXstream, chanMask, flags, timeNs);
 }
 
-void CSDR::write(float* symbols, uint16_t length)
+double CSDR::getTXFullScale()
 {
-    int index = 0;
-    double two_pi = 2.0 * M_PI;
-    for (size_t j = 0; j < 20; j++) //4 Symbols with 5 Samples each
-    {
-        const double symbol = symbols[j] * m_phase_delta;
-        for (size_t i = 0; i < 51; i++)
-        {
-            m_sin_phase += symbol;
-            if (m_sin_phase >= two_pi)
-            {
-                m_sin_phase -= two_pi;
-            }
-            if (m_sin_phase <= -two_pi)
-            {
-                m_sin_phase += two_pi;
-            }
+    return m_TXfullScale;
+}
 
-            //m_TXBuffMem[0][(j * 51 * 2) + (2 * i)] = m_TXfullScale * std::sin(m_sin_phase);
-            //m_TXBuffMem[0][(j * 51 * 2) + (2 * i) + 1] = m_TXfullScale * std::cos(m_sin_phase);
-            m_TXBuffMem[0][index++] = m_TXfullScale * std::sin(m_sin_phase);
-            m_TXBuffMem[0][index++] = m_TXfullScale * std::cos(m_sin_phase);
-        }
-    }
-
-    for (int i = 0; i < m_numChans; i++) m_TXBuffs[i] = m_TXBuffMem[i].data();
+void CSDR::write(std::vector<int16_t> &samples, uint16_t length)
+{
+    m_TXBuffs[0] = samples.data();
+    m_TXBuffs[1] = m_TXBuffMem[1].data();
 
     int flags(0);
     long long timeNs(0);
@@ -97,8 +79,6 @@ CSDR::CSDR() :
     m_device(nullptr),
     m_numChans(1),
     m_samplerate(255 * 4800), //4800 symbols/s with 255 samples/symbol
-    m_sin_phase(0),
-    m_phase_delta(2.0 * M_PI / m_samplerate),
     m_TXBuffMem(m_numChans, std::vector<int16_t>(2 * 1020)),
     m_TXBuffs(m_numChans),
     m_RXBuffMem(m_numChans, std::vector<int16_t>(2 * 1020)),
@@ -141,7 +121,6 @@ CSDR::CSDR() :
         setStreamState(true);
         setStreamState(false);
         m_device->activateStream(m_RXstream);
-
     }
     catch (const std::exception& ex)
     {
