@@ -1,4 +1,4 @@
-﻿/*
+/*
  *   Copyright (C) 2019 by Patrick Maier DK5MP
  *
  *   This program is free software : you can redistribute itand /or modify
@@ -20,5 +20,7 @@
 #define  MMDVMSDR_H
 
 #include <iostream>
+#include <thread>
+#include <chrono>
 
 #endif

@@ -1,6 +1,6 @@
 /*
  *   Copyright (C) 2019 by Patrick Maier DK5MP
- *   Copyright (C) 2015 by Jonathan Naylor G4KLX
+ *   Copyright (C) 2015,2016,2017 by Jonathan Naylor G4KLX
  *
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -17,23 +17,26 @@
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#if !defined(DMRSLOTTYPE_H)
-#define  DMRSLOTTYPE_H
+#if !defined(DMRRX_H)
+#define  DMRRX_H
 
-#include <cstdint>
+#include "Config.h"
+#include "DMRSlotRX.h"
 
-class CDMRSlotType {
+class CDMRRX {
 public:
-    CDMRSlotType();
+    CDMRRX();
 
-    void decode(const uint8_t* frame, uint8_t& colorCode, uint8_t& dataType) const;
+    void samples(const q15_t* samples, const uint16_t* rssi, const uint8_t* control, uint8_t length);
 
-    void encode(uint8_t colorCode, uint8_t dataType, uint8_t* frame) const;
+    void setColorCode(uint8_t colorCode);
+    void setDelay(uint8_t delay);
+
+    void reset();
 
 private:
-
-    uint8_t  decode2087(const uint8_t* data) const;
-    uint32_t getSyndrome1987(uint32_t pattern) const;
+    CDMRSlotRX m_slot1RX;
+    CDMRSlotRX m_slot2RX;
 };
 
 #endif

@@ -225,63 +225,63 @@ uint32_t CDMRSlotType::getSyndrome1987(uint32_t pattern) const
  * obtain its syndrome in decoding.
  */
 {
-	unsigned int aux = X18;
+    unsigned int aux = X18;
 
-	if (pattern >= X11) {
-		while (pattern & MASK8) {
-			while (!(aux & pattern))
-				aux = aux >> 1;
+    if (pattern >= X11) {
+        while (pattern & MASK8) {
+            while (!(aux & pattern))
+                aux = aux >> 1;
 
-			pattern ^= (aux / X11) * GENPOL;
-		}
-	}
+            pattern ^= (aux / X11) * GENPOL;
+        }
+    }
 
-	return pattern;
+    return pattern;
 }
 
 uint8_t CDMRSlotType::decode2087(const uint8_t* data) const
 {
-	uint32_t code = (data[0U] << 11) + (data[1U] << 3) + (data[2U] >> 5);
-	uint32_t syndrome = getSyndrome1987(code);
-	uint32_t error_pattern = DECODING_TABLE_1987[syndrome];
+    uint32_t code = (data[0U] << 11) + (data[1U] << 3) + (data[2U] >> 5);
+    uint32_t syndrome = getSyndrome1987(code);
+    uint32_t error_pattern = DECODING_TABLE_1987[syndrome];
 
-	if (error_pattern != 0x00U)
-		code ^= error_pattern;
+    if (error_pattern != 0x00U)
+        code ^= error_pattern;
 
-	return code >> 11;
+    return code >> 11;
 }
 
 void CDMRSlotType::decode(const uint8_t* frame, uint8_t& colorCode, uint8_t& dataType) const
 {
-	uint8_t slotType[3U];
-	slotType[0U] = (frame[12U] << 2) & 0xFCU;
-	slotType[0U] |= (frame[13U] >> 6) & 0x03U;
+    uint8_t slotType[3U];
+    slotType[0U] = (frame[12U] << 2) & 0xFCU;
+    slotType[0U] |= (frame[13U] >> 6) & 0x03U;
 
-	slotType[1U] = (frame[13U] << 2) & 0xC0U;
-	slotType[1U] |= (frame[19U] << 2) & 0x3CU;
-	slotType[1U] |= (frame[20U] >> 6) & 0x03U;
+    slotType[1U] = (frame[13U] << 2) & 0xC0U;
+    slotType[1U] |= (frame[19U] << 2) & 0x3CU;
+    slotType[1U] |= (frame[20U] >> 6) & 0x03U;
 
-	slotType[2U] = (frame[20U] << 2) & 0xF0U;
+    slotType[2U] = (frame[20U] << 2) & 0xF0U;
 
-	uint8_t code = decode2087(slotType);
+    uint8_t code = decode2087(slotType);
 
-	colorCode = (code >> 4) & 0x0FU;
-	dataType = (code >> 0) & 0x0FU;
+    colorCode = (code >> 4) & 0x0FU;
+    dataType = (code >> 0) & 0x0FU;
 }
 
 void CDMRSlotType::encode(uint8_t colorCode, uint8_t dataType, uint8_t* frame) const
 {
-	uint8_t slotType[3U];
-	slotType[0U] = (colorCode << 4) & 0xF0U;
-	slotType[0U] |= (dataType << 0) & 0x0FU;
+    uint8_t slotType[3U];
+    slotType[0U] = (colorCode << 4) & 0xF0U;
+    slotType[0U] |= (dataType << 0) & 0x0FU;
 
-	uint16_t cksum = ENCODING_TABLE_2087[slotType[0U]];
+    uint16_t cksum = ENCODING_TABLE_2087[slotType[0U]];
 
-	slotType[1U] = (cksum >> 0) & 0xFFU;
-	slotType[2U] = (cksum >> 8) & 0xFFU;
+    slotType[1U] = (cksum >> 0) & 0xFFU;
+    slotType[2U] = (cksum >> 8) & 0xFFU;
 
-	frame[12U] = (frame[12U] & 0xC0U) | ((slotType[0U] >> 2) & 0x3FU);
-	frame[13U] = (frame[13U] & 0x0FU) | ((slotType[0U] << 6) & 0xC0U) | ((slotType[1U] >> 2) & 0x30U);
-	frame[19U] = (frame[19U] & 0xF0U) | ((slotType[1U] >> 2) & 0x0FU);
-	frame[20U] = (frame[20U] & 0x03U) | ((slotType[1U] << 6) & 0xC0U) | ((slotType[2U] >> 2) & 0x3CU);
+    frame[12U] = (frame[12U] & 0xC0U) | ((slotType[0U] >> 2) & 0x3FU);
+    frame[13U] = (frame[13U] & 0x0FU) | ((slotType[0U] << 6) & 0xC0U) | ((slotType[1U] >> 2) & 0x30U);
+    frame[19U] = (frame[19U] & 0xF0U) | ((slotType[1U] >> 2) & 0x0FU);
+    frame[20U] = (frame[20U] & 0x03U) | ((slotType[1U] << 6) & 0xC0U) | ((slotType[2U] >> 2) & 0x3CU);
 }

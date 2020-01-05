@@ -27,51 +27,51 @@
 
 class CSerialPort {
 public:
-	CSerialPort();
+    CSerialPort();
 
-	void process();
+    void process();
 
-	void writeDStarHeader(const uint8_t* header, uint8_t length);
-	void writeDStarData(const uint8_t* data, uint8_t length);
-	void writeDStarLost();
-	void writeDStarEOT();
+    void writeDStarHeader(const uint8_t* header, uint8_t length);
+    void writeDStarData(const uint8_t* data, uint8_t length);
+    void writeDStarLost();
+    void writeDStarEOT();
 
-	void writeDMRData(bool slot, const uint8_t* data, uint8_t length);
-	void writeDMRLost(bool slot);
+    void writeDMRData(bool slot, const uint8_t* data, uint8_t length);
+    void writeDMRLost(bool slot);
 
-	void writeYSFData(const uint8_t* data, uint8_t length);
-	void writeYSFLost();
+    void writeYSFData(const uint8_t* data, uint8_t length);
+    void writeYSFLost();
 
-	void writeP25Hdr(const uint8_t* data, uint8_t length);
-	void writeP25Ldu(const uint8_t* data, uint8_t length);
-	void writeP25Lost();
+    void writeP25Hdr(const uint8_t* data, uint8_t length);
+    void writeP25Ldu(const uint8_t* data, uint8_t length);
+    void writeP25Lost();
 
-	void writeNXDNData(const uint8_t* data, uint8_t length);
-	void writeNXDNLost();
+    void writeNXDNData(const uint8_t* data, uint8_t length);
+    void writeNXDNLost();
 
-	void writeCalData(const uint8_t* data, uint8_t length);
-	void writeRSSIData(const uint8_t* data, uint8_t length);
+    void writeCalData(const uint8_t* data, uint8_t length);
+    void writeRSSIData(const uint8_t* data, uint8_t length);
 
-	void writeDebug(const char* text);
-	void writeDebug(const char* text, int16_t n1);
-	void writeDebug(const char* text, int16_t n1, int16_t n2);
-	void writeDebug(const char* text, int16_t n1, int16_t n2, int16_t n3);
-	void writeDebug(const char* text, int16_t n1, int16_t n2, int16_t n3, int16_t n4);
+    void writeDebug(const char* text);
+    void writeDebug(const char* text, int16_t n1);
+    void writeDebug(const char* text, int16_t n1, int16_t n2);
+    void writeDebug(const char* text, int16_t n1, int16_t n2, int16_t n3);
+    void writeDebug(const char* text, int16_t n1, int16_t n2, int16_t n3, int16_t n4);
 
 private:
-	uint8_t   m_buffer[256U];
-	uint8_t   m_ptr;
-	uint8_t   m_len;
-	bool      m_debug;
-	int       m_serial_fd;
+    uint8_t   m_buffer[256U];
+    uint8_t   m_ptr;
+    uint8_t   m_len;
+    bool      m_debug;
+    int       m_serial_fd;
 
-	void    sendACK();
-	void    sendNAK(uint8_t err);
-	void    getStatus();
-	void    getVersion();
-	uint8_t setConfig(const uint8_t* data, uint8_t length);
-	uint8_t setMode(const uint8_t* data, uint8_t length);
-	void    setMode(MMDVM_STATE modemState);
+    void    sendACK();
+    void    sendNAK(uint8_t err);
+    void    getStatus();
+    void    getVersion();
+    uint8_t setConfig(const uint8_t* data, uint8_t length);
+    uint8_t setMode(const uint8_t* data, uint8_t length);
+    void    setMode(MMDVM_STATE modemState);
 };
 
 #endif

@@ -26,60 +26,65 @@
 
 #include "Config.h"
 #include "DMRDefines.h"
+#include "Semaphore.h"
 
 enum DMRTXSTATE {
-	DMRTXSTATE_IDLE,
-	DMRTXSTATE_SLOT1,
-	DMRTXSTATE_CACH1,
-	DMRTXSTATE_SLOT2,
-	DMRTXSTATE_CACH2,
-	DMRTXSTATE_CAL
+    DMRTXSTATE_IDLE,
+    DMRTXSTATE_SLOT1,
+    DMRTXSTATE_CACH1,
+    DMRTXSTATE_SLOT2,
+    DMRTXSTATE_CACH2,
+    DMRTXSTATE_CAL
 };
 
 class CDMRTX {
 public:
-	CDMRTX();
+    CDMRTX();
 
-	uint8_t writeData1(const uint8_t* data, uint8_t length);
-	uint8_t writeData2(const uint8_t* data, uint8_t length);
+    uint8_t writeData1(const uint8_t* data, uint8_t length);
+    uint8_t writeData2(const uint8_t* data, uint8_t length);
 
-	uint8_t writeShortLC(const uint8_t* data, uint8_t length);
-	uint8_t writeAbort(const uint8_t* data, uint8_t length);
+    uint8_t writeShortLC(const uint8_t* data, uint8_t length);
+    uint8_t writeAbort(const uint8_t* data, uint8_t length);
 
-	void setStart(bool start);
-	void setCal(bool start);
+    void setStart(bool start);
+    void setCal(bool start);
 
-	void process();
+    void process();
 
-	void resetFifo1();
-	void resetFifo2();
-	uint32_t getFrameCount();
+    void resetFifo1();
+    void resetFifo2();
+    uint32_t getFrameCount();
 
-	uint8_t getSpace1() const;
-	uint8_t getSpace2() const;
+    uint8_t getSpace1() const;
+    uint8_t getSpace2() const;
 
-	void setColorCode(uint8_t colorCode);
+    void setColorCode(uint8_t colorCode);
 
 private:
-	std::queue<uint8_t>              m_fifo[2U];
-	firinterp_rrrf                   m_rrc_interp_filter_obj;
-	DMRTXSTATE                       m_state;
-	uint8_t                          m_idle[DMR_FRAME_LENGTH_BYTES];
-	uint8_t                          m_cachPtr;
-	uint8_t                          m_shortLC[12U];
-	uint8_t                          m_newShortLC[12U];
-	uint8_t                          m_markBuffer[40U];
-	uint8_t                          m_poBuffer[40U];
-	uint16_t                         m_poLen;
-	uint16_t                         m_poPtr;
-	uint32_t                         m_frameCount;
-	uint32_t                         m_abortCount[2U];
-	bool                             m_abort[2U];
+    freqmod                          m_fmod;
+    std::vector<int16_t>             m_sampleBuffer;
+    std::queue<uint8_t>              m_fifo[2U];
+    firinterp_rrrf                   m_rrc_interp_filter_obj;
+    DMRTXSTATE                       m_state;
+    uint8_t                          m_idle[DMR_FRAME_LENGTH_BYTES];
+    uint8_t                          m_cachPtr;
+    uint8_t                          m_shortLC[12U];
+    uint8_t                          m_newShortLC[12U];
+    uint8_t                          m_markBuffer[40U];
+    uint8_t                          m_poBuffer[40U];
+    uint16_t                         m_poLen;
+    uint16_t                         m_poPtr;
+    uint32_t                         m_frameCount;
+    uint32_t                         m_abortCount[2U];
+    bool                             m_abort[2U];
+    std::vector<Semaphore*>          m_poSemaphore;
 
-	void createData(uint8_t slotIndex);
-	void createCACH(uint8_t txSlotIndex, uint8_t rxSlotIndex);
-	void createCal();
-	void writeByte(uint8_t c, uint8_t control);
+    void createData(uint8_t slotIndex);
+    void createCACH(uint8_t txSlotIndex, uint8_t rxSlotIndex);
+    void createCal();
+    void writeByte(uint8_t c, uint8_t control);
+    void readByte();
 };
 
 #endif

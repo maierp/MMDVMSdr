@@ -32,102 +32,98 @@
 
 class CIO {
 public:
-	CIO();
+    CIO();
 
-	void start();
+    void process();
 
-	void process();
+    void write(MMDVM_STATE mode, std::vector<int16_t> &samples, uint16_t length, const uint8_t* control = NULL);
+    void read();
 
-	void write(MMDVM_STATE mode, float* samples, uint16_t length, const uint8_t* control = NULL);
+    uint16_t getSpace() const;
 
-	uint16_t getSpace() const;
+    void setDecode(bool dcd);
+    void setADCDetection(bool detect);
 
-	void setDecode(bool dcd);
-	void setADCDetection(bool detect);
-	void setMode();
+    void interrupt();
 
-	void interrupt();
+    void setParameters(bool rxInvert, bool txInvert, bool pttInvert, uint8_t rxLevel, uint8_t cwIdTXLevel, uint8_t dstarTXLevel, uint8_t dmrTXLevel, uint8_t ysfTXLevel, uint8_t p25TXLevel, uint8_t nxdnTXLevel, uint8_t pocsagTXLevel, int16_t txDCOffset, int16_t rxDCOffset);
 
-	void setParameters(bool rxInvert, bool txInvert, bool pttInvert, uint8_t rxLevel, uint8_t cwIdTXLevel, uint8_t dstarTXLevel, uint8_t dmrTXLevel, uint8_t ysfTXLevel, uint8_t p25TXLevel, uint8_t nxdnTXLevel, uint8_t pocsagTXLevel, int16_t txDCOffset, int16_t rxDCOffset);
+    void getOverflow(bool& adcOverflow, bool& dacOverflow);
 
-	void getOverflow(bool& adcOverflow, bool& dacOverflow);
+    bool hasTXOverflow();
+    bool hasRXOverflow();
 
-	bool hasTXOverflow();
-	bool hasRXOverflow();
+    bool hasLockout() const;
 
-	bool hasLockout() const;
+    void resetWatchdog();
+    std::chrono::steady_clock::duration getWatchdog();
 
-	void resetWatchdog();
-	std::chrono::steady_clock::duration getWatchdog();
-
-	void selfTest();
+    void selfTest();
 
 private:
-	bool                 m_started;
-
-	std::queue<std::pair<uint16_t, uint8_t>> m_rxBuffer;
-	std::queue<std::pair<uint16_t, uint8_t>> m_txBuffer;
-	std::queue<uint16_t> m_rssiBuffer;
+    std::queue<std::pair<uint16_t, uint8_t>> m_rxBuffer;
+    std::queue<std::pair<uint16_t, uint8_t>> m_txBuffer;
+    std::queue<uint16_t> m_rssiBuffer;
 
 
-	//arm_biquad_casd_df1_inst_q31 m_dcFilter;
-	//q31_t                        m_dcState[4];
+    //arm_biquad_casd_df1_inst_q31 m_dcFilter;
+    //q31_t                        m_dcState[4];
 
-	//arm_fir_instance_q15 m_rrcFilter;
-	//arm_fir_instance_q15 m_gaussianFilter;
-	//arm_fir_instance_q15 m_boxcarFilter;
-	//arm_fir_instance_q15 m_nxdnFilter;
-	//arm_fir_instance_q15 m_nxdnISincFilter;
-	//int16_t                m_rrcState[70U];           // NoTaps + BlockSize - 1, 42 + 20 - 1 plus some spare
-	//int16_t                m_gaussianState[40U];      // NoTaps + BlockSize - 1, 12 + 20 - 1 plus some spare
-	//int16_t                m_boxcarState[30U];        // NoTaps + BlockSize - 1, 6 + 20 - 1 plus some spare
-	//int16_t                m_nxdnState[110U];         // NoTaps + BlockSize - 1, 82 + 20 - 1 plus some spare
-	//int16_t                m_nxdnISincState[60U];     // NoTaps + BlockSize - 1, 32 + 20 - 1 plus some spare
+    //arm_fir_instance_q15 m_rrcFilter;
+    //arm_fir_instance_q15 m_gaussianFilter;
+    //arm_fir_instance_q15 m_boxcarFilter;
+    //arm_fir_instance_q15 m_nxdnFilter;
+    //arm_fir_instance_q15 m_nxdnISincFilter;
+    //int16_t                m_rrcState[70U];           // NoTaps + BlockSize - 1, 42 + 20 - 1 plus some spare
+    //int16_t                m_gaussianState[40U];      // NoTaps + BlockSize - 1, 12 + 20 - 1 plus some spare
+    //int16_t                m_boxcarState[30U];        // NoTaps + BlockSize - 1, 6 + 20 - 1 plus some spare
+    //int16_t                m_nxdnState[110U];         // NoTaps + BlockSize - 1, 82 + 20 - 1 plus some spare
+    //int16_t                m_nxdnISincState[60U];     // NoTaps + BlockSize - 1, 32 + 20 - 1 plus some spare
 
-	bool                 m_pttInvert;
-	int16_t                m_rxLevel;
-	int16_t                m_cwIdTXLevel;
-	int16_t                m_dstarTXLevel;
-	int16_t                m_dmrTXLevel;
-	int16_t                m_ysfTXLevel;
-	int16_t                m_p25TXLevel;
-	int16_t                m_nxdnTXLevel;
-	int16_t                m_pocsagTXLevel;
+    bool                 m_pttInvert;
+    int16_t                m_rxLevel;
+    int16_t                m_cwIdTXLevel;
+    int16_t                m_dstarTXLevel;
+    int16_t                m_dmrTXLevel;
+    int16_t                m_ysfTXLevel;
+    int16_t                m_p25TXLevel;
+    int16_t                m_nxdnTXLevel;
+    int16_t                m_pocsagTXLevel;
 
-	uint16_t             m_rxDCOffset;
-	uint16_t             m_txDCOffset;
+    uint16_t             m_rxDCOffset;
+    uint16_t             m_txDCOffset;
 
-	uint32_t             m_ledCount;
-	bool                 m_ledValue;
+    uint32_t             m_ledCount;
+    bool                 m_ledValue;
 
-	bool                 m_detect;
+    bool                 m_detect;
 
-	uint16_t             m_adcOverflow;
-	uint16_t             m_dacOverflow;
+    uint16_t             m_adcOverflow;
+    uint16_t             m_dacOverflow;
 
-	volatile uint32_t    m_watchdog;
-	std::chrono::steady_clock::time_point m_timeout;
+    volatile uint32_t    m_watchdog;
+    std::chrono::steady_clock::time_point m_timeout;
 
-	bool                 m_lockout;
+    bool                 m_lockout;
 
-	// Hardware specific routines
-	//void initInt();
-	//void startInt();
+    // Hardware specific routines
+    //void initInt();
+    //void startInt();
 
-	//bool getCOSInt();
+    //bool getCOSInt();
 
-	//void setLEDInt(bool on);
-	//void setPTTInt(bool on);
-	//void setCOSInt(bool on);
+    //void setLEDInt(bool on);
+    //void setPTTInt(bool on);
+    //void setCOSInt(bool on);
 
-	//void setDStarInt(bool on);
-	//void setDMRInt(bool on);
-	//void setYSFInt(bool on);
-	//void setP25Int(bool on);
-	//void setNXDNInt(bool on);
-	//void setPOCSAGInt(bool on);
+    //void setDStarInt(bool on);
+    //void setDMRInt(bool on);
+    //void setYSFInt(bool on);
+    //void setP25Int(bool on);
+    //void setNXDNInt(bool on);
+    //void setPOCSAGInt(bool on);
 
-	//void delayInt(unsigned int dly);
+    //void delayInt(unsigned int dly);
 };
 
 #endif
