@@ -27,6 +27,7 @@
 #include <liquid/liquid.h>
 #include <cstdint>
 #include <vector>
+#include <mutex>
 
 class CSDR {
 public:
@@ -40,6 +41,7 @@ public:
 
 private:
     bool              m_streamState;
+    std::mutex        m_streamStateMutex;
     SoapySDR::Device* m_device;
     SoapySDR::Stream* m_TXstream;
     SoapySDR::Stream* m_RXstream;

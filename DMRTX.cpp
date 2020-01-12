@@ -64,6 +64,7 @@ CDMRTX::CDMRTX() :
     m_fmod(freqmod_create(DMR_MAX_FREQ_DEV / SAMPLERATE /* modulation index */)),
     m_sampleBuffer(2 * 1020),
     m_fifo(),
+    m_fifoMutex(2),
     m_state(DMRTXSTATE_IDLE),
     m_idle(),
     m_cachPtr(0U),
@@ -98,11 +99,19 @@ void CDMRTX::process()
 
     if (m_poLen == 0U) {
         //Wait for Data to process
-        std::unique_lock<std::mutex> lock(m_mutexFiFo);
-        if (m_fifo[0U].size() < DMR_FRAME_LENGTH_BYTES && m_fifo[0U].size() < DMR_FRAME_LENGTH_BYTES)
+        std::unique_lock<std::mutex> lock(m_DataAvailableMutex);
+        bool dataAvailable = false;
         {
-            m_cvFiFo.wait(lock);
+            std::unique_lock<std::mutex> fifoGuard1(m_fifoMutex[0], std::defer_lock);
+            std::unique_lock<std::mutex> fifoGuard2(m_fifoMutex[1], std::defer_lock);
+            std::lock(fifoGuard1, fifoGuard2);
+            dataAvailable = m_fifo[0U].size() >= DMR_FRAME_LENGTH_BYTES || m_fifo[0U].size() >= DMR_FRAME_LENGTH_BYTES;
         }
+        if (!dataAvailable)
+        {
+            m_DataAvailableConditionVariable.wait(lock);
+        }
+        
         sdr.setStreamState(true); // Turn on SDR if not already
         switch (m_state) {
         case DMRTXSTATE_SLOT1:
@@ -149,14 +158,17 @@ uint8_t CDMRTX::writeData1(const uint8_t* data, uint8_t length)
     if (length != (DMR_FRAME_LENGTH_BYTES + 1U))
         return 4U;
 
-    std::unique_lock<std::mutex> lock(m_mutexFiFo);
     if (m_abort[0U]) {
+        std::lock_guard<std::mutex> lock(m_fifoMutex[0]);
         std::queue<uint8_t>().swap(m_fifo[0U]); //clear the buffer
         m_abort[0U] = false;
     }
 
-    for (uint8_t i = 0U; i < DMR_FRAME_LENGTH_BYTES; i++)
-        m_fifo[0U].push(data[i + 1U]);
+    {
+        std::lock_guard<std::mutex> lock(m_fifoMutex[0]);
+        for (uint8_t i = 0U; i < DMR_FRAME_LENGTH_BYTES; i++)
+            m_fifo[0U].push(data[i + 1U]);
+    }
     //std::cout << "CDMRTX::writeData1(): m_fifo[0].size:" << std::to_string(m_fifo[0U].size()) << std::endl;
 
     if (m_state == DMRTXSTATE_IDLE)
@@ -164,7 +176,7 @@ uint8_t CDMRTX::writeData1(const uint8_t* data, uint8_t length)
         m_state = DMRTXSTATE_SLOT1;
     }
 
-    m_cvFiFo.notify_one();
+    m_DataAvailableConditionVariable.notify_one();
     return 0U;
 }
 
@@ -173,14 +185,17 @@ uint8_t CDMRTX::writeData2(const uint8_t* data, uint8_t length)
     if (length != (DMR_FRAME_LENGTH_BYTES + 1U))
         return 4U;
 
-    std::unique_lock<std::mutex> lock(m_mutexFiFo);
     if (m_abort[1U]) {
+        std::lock_guard<std::mutex> lock(m_fifoMutex[1]);
         std::queue<uint8_t>().swap(m_fifo[1U]); //clear the buffer
         m_abort[1U] = false;
     }
 
-    for (uint8_t i = 0U; i < DMR_FRAME_LENGTH_BYTES; i++)
-        m_fifo[1U].push(data[i + 1U]);
+    {
+        std::lock_guard<std::mutex> lock(m_fifoMutex[1]);
+        for (uint8_t i = 0U; i < DMR_FRAME_LENGTH_BYTES; i++)
+            m_fifo[1U].push(data[i + 1U]);
+    }
     //std::cout << "CDMRTX::writeData2(): m_fifo[1].size:" << std::to_string(m_fifo[1U].size()) << std::endl;
 
     if (m_state == DMRTXSTATE_IDLE)
@@ -188,7 +203,7 @@ uint8_t CDMRTX::writeData2(const uint8_t* data, uint8_t length)
         m_state = DMRTXSTATE_SLOT1;
     }
 
-    m_cvFiFo.notify_one();
+    m_DataAvailableConditionVariable.notify_one();
     return 0U;
 }
 
@@ -316,6 +331,7 @@ uint8_t CDMRTX::getSpace2() const
 
 void CDMRTX::createData(uint8_t slotIndex)
 {
+    std::lock_guard<std::mutex> lock(m_fifoMutex[slotIndex]);
     if (m_fifo[slotIndex].size() >= DMR_FRAME_LENGTH_BYTES && m_frameCount >= STARTUP_COUNT && m_abortCount[slotIndex] >= ABORT_COUNT) {
         for (unsigned int i = 0U; i < DMR_FRAME_LENGTH_BYTES; i++) {
             m_poBuffer[i] = m_fifo[slotIndex].front();
@@ -372,6 +388,9 @@ void CDMRTX::createCal()
 
 void CDMRTX::createCACH(uint8_t txSlotIndex, uint8_t rxSlotIndex)
 {
+    std::unique_lock<std::mutex> fifoGuard1(m_fifoMutex[0], std::defer_lock);
+    std::unique_lock<std::mutex> fifoGuard2(m_fifoMutex[1], std::defer_lock);
+    std::lock(fifoGuard1, fifoGuard2);
     m_frameCount++;
     m_abortCount[0U]++;
     m_abortCount[1U]++;
@@ -437,11 +456,13 @@ void CDMRTX::setColorCode(uint8_t colorCode)
 
 void CDMRTX::resetFifo1()
 {
+    std::lock_guard<std::mutex> lock(m_fifoMutex[0]);
     std::queue<uint8_t>().swap(m_fifo[0U]); //clear the buffer
 }
 
 void CDMRTX::resetFifo2()
 {
+    std::lock_guard<std::mutex> lock(m_fifoMutex[0]);
     std::queue<uint8_t>().swap(m_fifo[1U]); //clear the buffer
 }
 

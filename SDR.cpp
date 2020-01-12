@@ -23,6 +23,7 @@
 
 void CSDR::setStreamState(bool isEnabled)
 {
+    std::lock_guard<std::mutex> lock(m_streamStateMutex);
     if (m_streamState != isEnabled)
     {
         if (isEnabled)
@@ -46,6 +47,7 @@ void CSDR::setStreamState(bool isEnabled)
 
 int CSDR::readStreamStatus(int& flags)
 {
+    std::lock_guard<std::mutex> lock(m_streamStateMutex);
     std::size_t chanMask(0);
     long long timeNs(0);
     int result = 0;
@@ -68,7 +70,12 @@ void CSDR::write(std::vector<int16_t> &samples, uint16_t length)
     int flags(0);
     long long timeNs(0);
 
-    m_device->writeStream(m_TXstream, m_TXBuffs.data(), /*numElems*/1020, flags, timeNs);
+    // write only to stream if active
+    std::lock_guard<std::mutex> lock(m_streamStateMutex);
+    if (m_streamState)
+    {
+        m_device->writeStream(m_TXstream, m_TXBuffs.data(), /*numElems*/1020, flags, timeNs);
+    }
 }
 
 void CSDR::read(float* symbols, uint16_t length)
