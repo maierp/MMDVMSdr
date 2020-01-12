@@ -25,7 +25,7 @@
 #include <thread>
 #include <chrono>
 
-#include "Config.h"
+#include "DMRTX.h"
 #include "Globals.h"
 #include "DMRSlotType.h"
 
@@ -75,8 +75,7 @@ CDMRTX::CDMRTX() :
     m_poPtr(0U),
     m_frameCount(0U),
     m_abortCount(),
-    m_abort(),
-    m_poSemaphore()
+    m_abort()
 {
     m_rrc_interp_filter_obj = firinterp_rrrf_create_prototype(LIQUID_FIRFILT_RRC, 5, 4, 0.2, 0); // 4 Symbols with 5 interpolation samples each
 
@@ -88,9 +87,6 @@ CDMRTX::CDMRTX() :
 
     m_abortCount[0U] = 0U;
     m_abortCount[1U] = 0U;
-
-    m_poSemaphore.push_back(new Semaphore());
-    m_poSemaphore.push_back(new Semaphore());
 }
 
 void CDMRTX::process()
@@ -101,10 +97,15 @@ void CDMRTX::process()
     }
 
     if (m_poLen == 0U) {
+        //Wait for Data to process
+        std::unique_lock<std::mutex> lock(m_mutexFiFo);
+        if (m_fifo[0U].size() < DMR_FRAME_LENGTH_BYTES && m_fifo[0U].size() < DMR_FRAME_LENGTH_BYTES)
+        {
+            m_cvFiFo.wait(lock);
+        }
         sdr.setStreamState(true); // Turn on SDR if not already
         switch (m_state) {
         case DMRTXSTATE_SLOT1:
-            m_poSemaphore[0U]->wait();
             createData(0U);
             m_state = DMRTXSTATE_CACH2;
             break;
@@ -115,7 +116,6 @@ void CDMRTX::process()
             break;
 
         case DMRTXSTATE_SLOT2:
-            m_poSemaphore[0U]->wait();
             createData(1U);
             m_state = DMRTXSTATE_CACH1;
             break;
@@ -149,6 +149,7 @@ uint8_t CDMRTX::writeData1(const uint8_t* data, uint8_t length)
     if (length != (DMR_FRAME_LENGTH_BYTES + 1U))
         return 4U;
 
+    std::unique_lock<std::mutex> lock(m_mutexFiFo);
     if (m_abort[0U]) {
         std::queue<uint8_t>().swap(m_fifo[0U]); //clear the buffer
         m_abort[0U] = false;
@@ -163,7 +164,7 @@ uint8_t CDMRTX::writeData1(const uint8_t* data, uint8_t length)
         m_state = DMRTXSTATE_SLOT1;
     }
 
-    m_poSemaphore[0U]->notify();
+    m_cvFiFo.notify_one();
     return 0U;
 }
 
@@ -172,6 +173,7 @@ uint8_t CDMRTX::writeData2(const uint8_t* data, uint8_t length)
     if (length != (DMR_FRAME_LENGTH_BYTES + 1U))
         return 4U;
 
+    std::unique_lock<std::mutex> lock(m_mutexFiFo);
     if (m_abort[1U]) {
         std::queue<uint8_t>().swap(m_fifo[1U]); //clear the buffer
         m_abort[1U] = false;
@@ -183,10 +185,10 @@ uint8_t CDMRTX::writeData2(const uint8_t* data, uint8_t length)
 
     if (m_state == DMRTXSTATE_IDLE)
     {
-        m_state = DMRTXSTATE_SLOT2;
+        m_state = DMRTXSTATE_SLOT1;
     }
 
-    m_poSemaphore[0U]->notify();
+    m_cvFiFo.notify_one();
     return 0U;
 }
 
@@ -284,9 +286,9 @@ void CDMRTX::writeByte(uint8_t c, uint8_t control)
     // Do the FM modulation and store the samples in m_sampleBuffer
     int index = 0;
     liquid_float_complex s;
-    for (size_t j = 0; j < 4U * DMR_RADIO_SYMBOL_LENGTH; j++) //4 Symbols with 5 Samples each
+    for (unsigned int j = 0; j < 4 * DMR_RADIO_SYMBOL_LENGTH; j++) //4 Symbols with 5 Samples each
     {
-        for (size_t i = 0; i < 51; i++)
+        for (int i = 0; i < 51; i++)
         {
             freqmod_modulate(m_fmod, outBuffer[j], &s);
             m_sampleBuffer[index++] = TXFullScale * s.imag;
@@ -330,11 +332,6 @@ void CDMRTX::createData(uint8_t slotIndex)
             m_markBuffer[i] = MARK_NONE;
         }
         //std::cout << "CDMRTX::createData(IDLE_MESSAGE) m_fifo.size() " << std::to_string(m_fifo[slotIndex].size()) << std::endl;
-
-        // If we are in the startup or abort phase, regenerate semaphore
-        if (m_fifo[0U].size() >= DMR_FRAME_LENGTH_BYTES || m_fifo[1U].size() >= DMR_FRAME_LENGTH_BYTES) {
-            m_poSemaphore[0U]->notify(); // no fifo data was consumed so recreate one
-        }
     }
 
     m_poLen = DMR_FRAME_LENGTH_BYTES;

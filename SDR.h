@@ -26,6 +26,7 @@
 #include <SoapySDR/Formats.hpp>
 #include <liquid/liquid.h>
 #include <cstdint>
+#include <vector>
 
 class CSDR {
 public:
@@ -43,7 +44,7 @@ private:
     SoapySDR::Stream* m_TXstream;
     SoapySDR::Stream* m_RXstream;
     int               m_numChans;
-    size_t            m_numElems;
+    int               m_numElems;
     std::string       m_TXformat;
     std::string       m_RXformat;
     double            m_TXfullScale;

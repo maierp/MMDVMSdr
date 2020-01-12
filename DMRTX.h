@@ -78,7 +78,8 @@ private:
     uint32_t                         m_frameCount;
     uint32_t                         m_abortCount[2U];
     bool                             m_abort[2U];
-    std::vector<Semaphore*>          m_poSemaphore;
+    std::condition_variable          m_cvFiFo;
+    std::mutex                       m_mutexFiFo;
 
     void createData(uint8_t slotIndex);
     void createCACH(uint8_t txSlotIndex, uint8_t rxSlotIndex);
