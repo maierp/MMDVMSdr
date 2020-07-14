@@ -15,6 +15,7 @@
  *   along with this program.If not, see < http://www.gnu.org/licenses/>.
  *
  */
+#include <ncurses.h>
 
 #include "Config.h"
 #include "Globals.h"
@@ -148,6 +149,8 @@ void dmrThreadRXProcess()
  **********************************************************************/
 int main()
 {
+    initscr();
+    cbreak();
     cout << "MMDVM-SDR is starting" << endl;
 
     std::thread dmrThread(dmrThreadTXProcess);
