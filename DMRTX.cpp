@@ -57,7 +57,7 @@ const uint8_t BIT_MASK_TABLE[] = { 0x80U, 0x40U, 0x20U, 0x10U, 0x08U, 0x04U, 0x0
 #define WRITE_BIT1(p,i,b) p[(i)>>3] = (b) ? (p[(i)>>3] | BIT_MASK_TABLE[(i)&7]) : (p[(i)>>3] & ~BIT_MASK_TABLE[(i)&7])
 #define READ_BIT1(p,i)    (p[(i)>>3] & BIT_MASK_TABLE[(i)&7])
 
-const uint32_t STARTUP_COUNT = 0U; //20U
+const uint32_t STARTUP_COUNT = 10U; //20U
 const uint32_t ABORT_COUNT = 0U;// 6U;
 
 CDMRTX::CDMRTX() :
@@ -332,7 +332,7 @@ uint8_t CDMRTX::getSpace2() const
 void CDMRTX::createData(uint8_t slotIndex)
 {
     std::lock_guard<std::mutex> lock(m_fifoMutex[slotIndex]);
-    if (m_fifo[slotIndex].size() >= DMR_FRAME_LENGTH_BYTES ){//&& m_frameCount >= STARTUP_COUNT && m_abortCount[slotIndex] >= ABORT_COUNT) {
+    if (m_fifo[slotIndex].size() >= DMR_FRAME_LENGTH_BYTES && m_frameCount >= STARTUP_COUNT ){//&& m_abortCount[slotIndex] >= ABORT_COUNT) {
         for (unsigned int i = 0U; i < DMR_FRAME_LENGTH_BYTES; i++) {
             m_poBuffer[i] = m_fifo[slotIndex].front();
             m_fifo[slotIndex].pop();
@@ -342,7 +342,7 @@ void CDMRTX::createData(uint8_t slotIndex)
     }
     else {
         m_abort[slotIndex] = false;
-        std::cout << " i" << +slotIndex << " " << std::flush;
+        std::cout << " i" << +(slotIndex+1) << " " << std::flush;
         // Transmit an idle message
         for (unsigned int i = 0U; i < DMR_FRAME_LENGTH_BYTES; i++) {
             m_poBuffer[i] = m_idle[i];
