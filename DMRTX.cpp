@@ -332,7 +332,7 @@ uint8_t CDMRTX::getSpace2() const
 void CDMRTX::createData(uint8_t slotIndex)
 {
     std::lock_guard<std::mutex> lock(m_fifoMutex[slotIndex]);
-    if (m_fifo[slotIndex].size() >= DMR_FRAME_LENGTH_BYTES && m_frameCount >= STARTUP_COUNT && m_abortCount[slotIndex] >= ABORT_COUNT) {
+    if (m_fifo[slotIndex].size() >= DMR_FRAME_LENGTH_BYTES ){//&& m_frameCount >= STARTUP_COUNT && m_abortCount[slotIndex] >= ABORT_COUNT) {
         for (unsigned int i = 0U; i < DMR_FRAME_LENGTH_BYTES; i++) {
             m_poBuffer[i] = m_fifo[slotIndex].front();
             m_fifo[slotIndex].pop();
@@ -342,7 +342,7 @@ void CDMRTX::createData(uint8_t slotIndex)
     }
     else {
         m_abort[slotIndex] = false;
-        std::cout << " i" << slotIndex;
+        std::cout << " i" << +slotIndex << " " << std::flush;
         // Transmit an idle message
         for (unsigned int i = 0U; i < DMR_FRAME_LENGTH_BYTES; i++) {
             m_poBuffer[i] = m_idle[i];
