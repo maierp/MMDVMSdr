@@ -24,6 +24,7 @@
 #include <iostream>
 #include <thread>
 #include <chrono>
+#include <ncurses.h>
 
 #include "DMRTX.h"
 #include "Globals.h"
