@@ -342,6 +342,7 @@ void CDMRTX::createData(uint8_t slotIndex)
     }
     else {
         m_abort[slotIndex] = false;
+        std::cout << " " << i << slotIndex;
         // Transmit an idle message
         for (unsigned int i = 0U; i < DMR_FRAME_LENGTH_BYTES; i++) {
             m_poBuffer[i] = m_idle[i];
