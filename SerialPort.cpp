@@ -349,6 +349,8 @@ uint8_t CSerialPort::setConfig(const uint8_t* data, uint8_t length)
 
     m_modemState = modemState;
     //std::cout << "SerialPort::setConfig() Set modemState to " << std::to_string(modemState) << std::endl;
+    mvprintw(2, 0, "SerialPort::setConfig() Set modemState to %d", modemState);
+    insertln();
 
     m_dstarEnable = dstarEnable;
     m_dmrEnable = dmrEnable;
@@ -483,6 +485,8 @@ void CSerialPort::setMode(MMDVM_STATE modemState)
     //cwIdTX.reset();
 
     m_modemState = modemState;
+    mvprintw(2, 0, "SerialPort::setMode() Set modemState to %d", modemState);
+    insertln();
     //std::cout << "SerialPort::setMode() Set modemState to " << std::to_string(modemState) << std::endl;
 }
 
@@ -521,16 +525,22 @@ void CSerialPort::process()
                 switch (m_buffer[2U]) {
                 case MMDVM_GET_STATUS:
                     //std::cout << "MMDVM_GET_STATUS" << std::endl;
+                    mvprintw(2, 0, "MMDVM_GET_STATUS");
+                    insertln();
                     getStatus();
                     break;
 
                 case MMDVM_GET_VERSION:
                     //std::cout << "MMDVM_GET_VERSION" << std::endl;
+                    mvprintw(2, 0, "MMDVM_GET_VERSION");
+                    insertln();
                     getVersion();
                     break;
 
                 case MMDVM_SET_CONFIG:
                     //std::cout << "MMDVM_SET_CONFIG" << std::endl;
+                    mvprintw(2, 0, "MMDVM_SET_CONFIG");
+                    insertln();
                     err = setConfig(m_buffer + 3U, m_len - 3U);
                     if (err == 0U)
                         sendACK();
@@ -540,6 +550,8 @@ void CSerialPort::process()
 
                 case MMDVM_SET_MODE:
                     //std::cout << "MMDVM_SET_MODE" << std::endl;
+                    mvprintw(2, 0, "MMDVM_SET_MODE");
+                    insertln();
                     err = setMode(m_buffer + 3U, m_len - 3U);
                     if (err == 0U)
                         sendACK();
@@ -549,6 +561,8 @@ void CSerialPort::process()
 
                 case MMDVM_SET_FREQ:
                     //std::cout << "MMDVM_SET_FREQ" << std::endl;
+                    mvprintw(2, 0, "MMDVM_SET_FREQ");
+                    insertln();
                     err = sdr.setFrequency(m_buffer + 4U, m_len - 4U);
                     if (err == 0U)
                         sendACK();
@@ -639,6 +653,8 @@ void CSerialPort::process()
                 case MMDVM_DMR_DATA1:
                     //std::cout << "MMDVM_DMR_DATA1" << std::endl;
                     //std::cout << "1" << std::flush;
+                    mvprintw(2, 0, "MMDVM_DMR_DATA1");
+                    insertln();
                     if (m_dmrEnable) {
                         if (m_modemState == STATE_IDLE || m_modemState == STATE_DMR) {
                             if (m_duplex)
@@ -659,6 +675,8 @@ void CSerialPort::process()
                 case MMDVM_DMR_DATA2:
                     //std::cout << "MMDVM_DMR_DATA2" << std::endl;
                     //std::cout << "2" << std::flush;
+                    mvprintw(2, 0, "MMDVM_DMR_DATA2");
+                    insertln();
                     if (m_dmrEnable) {
                         if (m_modemState == STATE_IDLE || m_modemState == STATE_DMR) {
                             if (m_duplex)
@@ -679,6 +697,8 @@ void CSerialPort::process()
 
                 case MMDVM_DMR_START:
                     //std::cout << "MMDVM_DMR_START" << std::endl;
+                    mvprintw(2, 0, "MMDVM_DMR_START");
+                    insertln();
                     if (m_dmrEnable) {
                         err = 4U;
                         if (m_len == 4U) {
@@ -700,6 +720,8 @@ void CSerialPort::process()
 
                 case MMDVM_DMR_SHORTLC:
                     //std::cout << "MMDVM_DMR_SHORTLC" << std::endl;
+                    mvprintw(2, 0, "MMDVM_DMR_SHORTLC");
+                    insertln();
                     if (m_dmrEnable)
                         err = dmrTX.writeShortLC(m_buffer + 3U, m_len - 3U);
                     if (err != 0U) {
@@ -710,6 +732,8 @@ void CSerialPort::process()
 
                 case MMDVM_DMR_ABORT:
                     //std::cout << "MMDVM_DMR_ABORT" << std::endl;
+                    mvprintw(2, 0, "MMDVM_DMR_ABORT");
+                    insertln();
                     if (m_dmrEnable)
                         err = dmrTX.writeAbort(m_buffer + 3U, m_len - 3U);
                     if (err != 0U) {
