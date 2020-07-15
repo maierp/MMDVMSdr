@@ -25,6 +25,7 @@
 #include <unistd.h>
 #include <chrono>
 #include <sys/stat.h>
+#include <ncurses.h>
 
 #include "Config.h"
 #include "Globals.h"
