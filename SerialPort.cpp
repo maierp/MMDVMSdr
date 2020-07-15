@@ -699,7 +699,7 @@ void CSerialPort::process()
                     break;
 
                 case MMDVM_DMR_SHORTLC:
-                    std::cout << "MMDVM_DMR_SHORTLC" << std::endl;
+                    //std::cout << "MMDVM_DMR_SHORTLC" << std::endl;
                     if (m_dmrEnable)
                         err = dmrTX.writeShortLC(m_buffer + 3U, m_len - 3U);
                     if (err != 0U) {

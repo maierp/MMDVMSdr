@@ -167,7 +167,7 @@ uint8_t CDMRTX::writeData1(const uint8_t* data, uint8_t length)
         std::queue<uint8_t>().swap(m_fifo[0U]); //clear the buffer
         m_abort[0U] = false;
         while (bufferCount[0] > 0) {
-            mvaddch(0, bufferCount[0], ACS_S9);
+            delch(0, 0);
             bufferCount[0]--;
         }
     }
@@ -201,7 +201,7 @@ uint8_t CDMRTX::writeData2(const uint8_t* data, uint8_t length)
         std::queue<uint8_t>().swap(m_fifo[1U]); //clear the buffer
         m_abort[1U] = false;
         while (bufferCount[1] > 0) {
-            mvaddch(1, bufferCount[1], ACS_S9);
+            delch(1, 0);
             bufferCount[1]--;
         }
     }
@@ -356,7 +356,7 @@ void CDMRTX::createData(uint8_t slotIndex)
             m_fifo[slotIndex].pop();
             m_markBuffer[i] = MARK_NONE;
         }
-        mvaddch(slotIndex, bufferCount[slotIndex], ACS_S9);
+        delch(slotIndex, 0);
         bufferCount[slotIndex]--;
         refresh();
         //std::cout << "CDMRTX::createData() m_fifo.size() " << std::to_string(m_fifo[slotIndex].size()) << std::endl;
