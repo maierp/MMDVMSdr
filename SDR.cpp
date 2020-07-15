@@ -19,6 +19,7 @@
 #include <iostream>
 #include <cstddef> //size_t
 #include <SoapySDR/Logger.hpp>
+#include <ncurses.h>
 
 #include "SDR.h"
 
@@ -30,6 +31,9 @@ void CSDR::setStreamState(bool isEnabled)
         if (isEnabled)
         {
             //std::cout << "SDR: Enable Modem" << std::endl;
+            mvprintw(2, 0, "SDR: Enable Modem");
+            insertln();
+            refresh();
             m_TXstream = m_device->setupStream(SOAPY_SDR_TX, m_TXformat);
             m_device->activateStream(m_TXstream);
             m_numElems = m_device->getStreamMTU(m_TXstream); // Number of IQ pairs
@@ -38,6 +42,9 @@ void CSDR::setStreamState(bool isEnabled)
         else
         {
             //std::cout << "SDR: Disable Modem" << std::endl;
+            mvprintw(2, 0, "SDR: Disable Modem");
+            insertln();
+            refresh();
             m_device->deactivateStream(m_TXstream);
             m_device->closeStream(m_TXstream);
             //SoapySDR::Device::unmake(m_device);
@@ -89,6 +96,9 @@ void CSDR::read(float* symbols, uint16_t length)
 
 static void SoapyPocoLogHandler(const SoapySDR::LogLevel logLevel, const char* message)
 {
+    mvprintw(2, 0, message);
+    insertln();
+    refresh();
 }
 
 CSDR::CSDR() :
@@ -113,12 +123,18 @@ CSDR::CSDR() :
         m_device->setGain(SOAPY_SDR_RX, 0, 64);
         //std::cout << "SDR: TXGain: " << m_device->getGain(SOAPY_SDR_TX, 0) << std::endl;
         //std::cout << "SDR: RXGain: " << m_device->getGain(SOAPY_SDR_RX, 0) << std::endl;
-
+        mvprintw(2, 0, "SDR: TXGain: %d", m_device->getGain(SOAPY_SDR_TX, 0));
+        insertln();
+        mvprintw(2, 0, "SDR: RXGain: %d", m_device->getGain(SOAPY_SDR_RX, 0));
+        insertln();
+        refresh();
         //std::cout << "SDR: List TX antennas:" << std::endl;
         const auto antennasTX = m_device->listAntennas(SOAPY_SDR_TX, 0);
         for (const auto& antenna : antennasTX)
         {
             //std::cout << "SDR:    " << antenna << std::endl;
+            //mvprintw(2, 0, "SDR: %s", antenna);
+            //insertln();
         }
         //std::cout << "SDR: Selected TX antenna: " << m_device->getAntenna(SOAPY_SDR_TX, 0) << std::endl;
 
@@ -156,6 +172,11 @@ uint8_t CSDR::setFrequency(const uint8_t* data, uint8_t length)
     m_txFrequency = (data[7] << 24) + (data[6] << 16) + (data[5] << 8) + data[4];
     //std::cout << "SDR: Set RX frequency: " << m_rxFrequency << std::endl;
     //std::cout << "SDR: Set TX frequency: " << m_txFrequency << std::endl;
+    mvprintw(2, 0, "SDR: Set RX frequency: %d", m_rxFrequency);
+    insertln();
+    mvprintw(2, 0, "SDR: Set TX frequency: %d", m_txFrequency);
+    insertln();
+    refresh();
     m_device->setFrequency(SOAPY_SDR_TX, 0, m_txFrequency);
     m_device->setFrequency(SOAPY_SDR_RX, 0, m_rxFrequency);
     return 0U;
