@@ -358,7 +358,7 @@ void CDMRTX::createData(uint8_t slotIndex)
         }
         //mvdelch(slotIndex, 0);
         bufferCount[slotIndex]--;
-        refresh();
+        //refresh();
         //std::cout << "CDMRTX::createData() m_fifo.size() " << std::to_string(m_fifo[slotIndex].size()) << std::endl;
     }
     else {
