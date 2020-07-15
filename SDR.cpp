@@ -28,15 +28,15 @@ void CSDR::setStreamState(bool isEnabled)
     {
         if (isEnabled)
         {
-            std::cout << "SDR: Enable Modem" << std::endl;
+            //std::cout << "SDR: Enable Modem" << std::endl;
             m_TXstream = m_device->setupStream(SOAPY_SDR_TX, m_TXformat);
             m_device->activateStream(m_TXstream);
             m_numElems = m_device->getStreamMTU(m_TXstream); // Number of IQ pairs
-            std::cout << "SDR: NumElements: " << m_numElems << std::endl;
+            //std::cout << "SDR: NumElements: " << m_numElems << std::endl;
         }
         else
         {
-            std::cout << "SDR: Disable Modem" << std::endl;
+            //std::cout << "SDR: Disable Modem" << std::endl;
             m_device->deactivateStream(m_TXstream);
             m_device->closeStream(m_TXstream);
             //SoapySDR::Device::unmake(m_device);
@@ -105,38 +105,38 @@ CSDR::CSDR() :
         m_device->setFrequency(SOAPY_SDR_RX, 0, 430262500);
         m_device->setGain(SOAPY_SDR_TX, 0, 64);
         m_device->setGain(SOAPY_SDR_RX, 0, 64);
-        std::cout << "SDR: TXGain: " << m_device->getGain(SOAPY_SDR_TX, 0) << std::endl;
-        std::cout << "SDR: RXGain: " << m_device->getGain(SOAPY_SDR_RX, 0) << std::endl;
+        //std::cout << "SDR: TXGain: " << m_device->getGain(SOAPY_SDR_TX, 0) << std::endl;
+        //std::cout << "SDR: RXGain: " << m_device->getGain(SOAPY_SDR_RX, 0) << std::endl;
 
-        std::cout << "SDR: List TX antennas:" << std::endl;
+        //std::cout << "SDR: List TX antennas:" << std::endl;
         const auto antennasTX = m_device->listAntennas(SOAPY_SDR_TX, 0);
         for (const auto& antenna : antennasTX)
         {
-            std::cout << "SDR:    " << antenna << std::endl;
+            //std::cout << "SDR:    " << antenna << std::endl;
         }
-        std::cout << "SDR: Selected TX antenna: " << m_device->getAntenna(SOAPY_SDR_TX, 0) << std::endl;
+        //std::cout << "SDR: Selected TX antenna: " << m_device->getAntenna(SOAPY_SDR_TX, 0) << std::endl;
 
-        std::cout << "SDR: List RX antennas:" << std::endl;
+        //std::cout << "SDR: List RX antennas:" << std::endl;
         const auto antennasRX = m_device->listAntennas(SOAPY_SDR_RX, 0);
         for (const auto& antenna : antennasRX)
         {
-            std::cout << "SDR:    " << antenna << std::endl;
+            //std::cout << "SDR:    " << antenna << std::endl;
         }
-        std::cout << "SDR: Selected RX antenna: " << m_device->getAntenna(SOAPY_SDR_RX, 0) << std::endl;
+        //std::cout << "SDR: Selected RX antenna: " << m_device->getAntenna(SOAPY_SDR_RX, 0) << std::endl;
 
         m_TXformat = m_device->getNativeStreamFormat(SOAPY_SDR_TX, 0, m_TXfullScale);
         m_RXformat = m_device->getNativeStreamFormat(SOAPY_SDR_RX, 0, m_RXfullScale);
         //m_TXstream = m_device->setupStream(SOAPY_SDR_TX, m_TXformat);
         m_RXstream = m_device->setupStream(SOAPY_SDR_RX, m_RXformat);
-        std::cout << "SDR: TX Format:" << m_TXformat << " FullScale:" << m_TXfullScale << std::endl;
-        std::cout << "SDR: RX Format:" << m_RXformat << " FullScale:" << m_RXfullScale << std::endl;
+        //std::cout << "SDR: TX Format:" << m_TXformat << " FullScale:" << m_TXfullScale << std::endl;
+        //std::cout << "SDR: RX Format:" << m_RXformat << " FullScale:" << m_RXfullScale << std::endl;
         setStreamState(true);
         setStreamState(false);
         //m_device->activateStream(m_RXstream);
     }
     catch (const std::exception& ex)
     {
-        std::cerr << "Error in rate test: " << ex.what() << std::endl;
+        //std::cerr << "Error in rate test: " << ex.what() << std::endl;
         SoapySDR::Device::unmake(m_device);
     }
 }
@@ -148,8 +148,8 @@ uint8_t CSDR::setFrequency(const uint8_t* data, uint8_t length)
 
     m_rxFrequency = (data[3] << 24) + (data[2] << 16) + (data[1] << 8) + data[0];
     m_txFrequency = (data[7] << 24) + (data[6] << 16) + (data[5] << 8) + data[4];
-    std::cout << "SDR: Set RX frequency: " << m_rxFrequency << std::endl;
-    std::cout << "SDR: Set TX frequency: " << m_txFrequency << std::endl;
+    //std::cout << "SDR: Set RX frequency: " << m_rxFrequency << std::endl;
+    //std::cout << "SDR: Set TX frequency: " << m_txFrequency << std::endl;
     m_device->setFrequency(SOAPY_SDR_TX, 0, m_txFrequency);
     m_device->setFrequency(SOAPY_SDR_RX, 0, m_rxFrequency);
     return 0U;
