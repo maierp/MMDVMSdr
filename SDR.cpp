@@ -86,6 +86,10 @@ void CSDR::read(float* symbols, uint16_t length)
     m_device->readStream(m_RXstream, m_RXBuffs.data(), 1020, flags, timeNs);
 }
 
+static void SoapyPocoLogHandler(const SoapySDR::LogLevel logLevel, const char* message)
+{
+}
+
 CSDR::CSDR() :
     m_streamState(false),
     m_device(nullptr),
@@ -98,6 +102,7 @@ CSDR::CSDR() :
 {
     try
     {
+        SoapySDR::registerLogHandler(&SoapyPocoLogHandler);
         m_device = SoapySDR::Device::make("driver=lime");
         m_device->setSampleRate(SOAPY_SDR_TX, 0, m_samplerate);
         m_device->setSampleRate(SOAPY_SDR_RX, 0, m_samplerate);
