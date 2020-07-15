@@ -18,6 +18,7 @@
 
 #include <iostream>
 #include <cstddef> //size_t
+#include <SoapySDR/Logger.hpp>
 
 #include "SDR.h"
 
