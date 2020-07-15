@@ -528,7 +528,7 @@ void CSerialPort::process()
                 switch (m_buffer[2U]) {
                 case MMDVM_GET_STATUS:
                     //std::cout << "MMDVM_GET_STATUS" << std::endl;
-                    mvprintw(2, 0, "MMDVM_GET_STATUS");
+                    //mvprintw(2, 0, "MMDVM_GET_STATUS");
                     insertln();
                     refresh();
                     getStatus();
