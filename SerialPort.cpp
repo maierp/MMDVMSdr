@@ -170,7 +170,7 @@ void CSerialPort::getStatus()
     //std::cout << "Flags: " << std::to_string(flags) << std::endl;
     if (flags & 4) // "4" seems to be set when there is no data left in the tx buffer of the sdr
     {
-        //setMode(STATE_IDLE);
+        setMode(STATE_IDLE);
     }
     io.resetWatchdog();
 
