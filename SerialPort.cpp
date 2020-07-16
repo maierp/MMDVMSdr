@@ -747,7 +747,7 @@ void CSerialPort::process()
 
                 case MMDVM_DMR_ABORT:
                     //std::cout << "MMDVM_DMR_ABORT" << std::endl;
-                    mvprintw(2, 0, "MMDVM_DMR_ABORT %d", m_buffer + 3U);
+                    mvprintw(2, 0, "MMDVM_DMR_ABORT %d", *(m_buffer + 3U));
                     insertln();
                     refresh();
                     if (m_dmrEnable)
