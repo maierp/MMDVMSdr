@@ -710,7 +710,7 @@ void CSerialPort::process()
 
                 case MMDVM_DMR_START:
                     //std::cout << "MMDVM_DMR_START" << std::endl;
-                    mvprintw(2, 0, "MMDVM_DMR_START");
+                    mvprintw(2, 0, "MMDVM_DMR_START %d", m_buffer[3U]);
                     insertln();
                     refresh();
                     if (m_dmrEnable) {
