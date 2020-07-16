@@ -268,7 +268,9 @@ void CDMRTX::setStart(bool start)
         return;
 
     m_state = start ? DMRTXSTATE_SLOT1 : DMRTXSTATE_IDLE;
-    std::cout << "CDMRTX::setStart() m_state " << std::to_string(m_state) << std::endl;
+    mvprintw(2, 0, "CDMRTX::setStart() m_state %d", m_state);
+    insertln();
+    refresh();
 
     m_frameCount = 0U;
     m_abortCount[0U] = 0U;
