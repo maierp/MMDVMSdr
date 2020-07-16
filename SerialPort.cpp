@@ -174,7 +174,7 @@ void CSerialPort::getStatus()
         mvprintw(2, 0, "SerialPort::getStatus() sdr.ReadStreamStatus 0x04");
         insertln();
         refresh();
-        setMode(STATE_IDLE);
+        //setMode(STATE_IDLE);
     }
     io.resetWatchdog();
 
