@@ -171,7 +171,7 @@ void CSerialPort::getStatus()
     //std::cout << "Flags: " << std::to_string(flags) << std::endl;
     if (flags & 4) // "4" seems to be set when there is no data left in the tx buffer of the sdr
     {
-        mvprintw(2, 0, "SerialPort::getStatus() sdr.ReadStreamStatus 0x04");
+        mvprintw(4, 0, "SerialPort::getStatus() sdr.ReadStreamStatus 0x04");
         insertln();
         refresh();
         //setMode(STATE_IDLE);
@@ -353,7 +353,7 @@ uint8_t CSerialPort::setConfig(const uint8_t* data, uint8_t length)
 
     m_modemState = modemState;
     //std::cout << "SerialPort::setConfig() Set modemState to " << std::to_string(modemState) << std::endl;
-    mvprintw(2, 0, "SerialPort::setConfig() Set modemState to %d", modemState);
+    mvprintw(4, 0, "SerialPort::setConfig() Set modemState to %d", modemState);
     insertln();
     refresh();
 
@@ -490,7 +490,7 @@ void CSerialPort::setMode(MMDVM_STATE modemState)
     //cwIdTX.reset();
 
     m_modemState = modemState;
-    mvprintw(2, 0, "SerialPort::setMode() Set modemState to %d", modemState);
+    mvprintw(4, 0, "SerialPort::setMode() Set modemState to %d", modemState);
     insertln();
     refresh();
     //std::cout << "SerialPort::setMode() Set modemState to " << std::to_string(modemState) << std::endl;
@@ -531,7 +531,7 @@ void CSerialPort::process()
                 switch (m_buffer[2U]) {
                 case MMDVM_GET_STATUS:
                     //std::cout << "MMDVM_GET_STATUS" << std::endl;
-                    //mvprintw(2, 0, "MMDVM_GET_STATUS");
+                    //mvprintw(4, 0, "MMDVM_GET_STATUS");
                     //insertln();
                     //refresh();
                     getStatus();
@@ -539,7 +539,7 @@ void CSerialPort::process()
 
                 case MMDVM_GET_VERSION:
                     //std::cout << "MMDVM_GET_VERSION" << std::endl;
-                    mvprintw(2, 0, "MMDVM_GET_VERSION");
+                    mvprintw(4, 0, "MMDVM_GET_VERSION");
                     insertln();
                     refresh();
                     getVersion();
@@ -547,7 +547,7 @@ void CSerialPort::process()
 
                 case MMDVM_SET_CONFIG:
                     //std::cout << "MMDVM_SET_CONFIG" << std::endl;
-                    mvprintw(2, 0, "MMDVM_SET_CONFIG");
+                    mvprintw(4, 0, "MMDVM_SET_CONFIG");
                     insertln();
                     refresh();
                     err = setConfig(m_buffer + 3U, m_len - 3U);
@@ -559,7 +559,7 @@ void CSerialPort::process()
 
                 case MMDVM_SET_MODE:
                     //std::cout << "MMDVM_SET_MODE" << std::endl;
-                    mvprintw(2, 0, "MMDVM_SET_MODE");
+                    mvprintw(4, 0, "MMDVM_SET_MODE");
                     insertln();
                     refresh();
                     err = setMode(m_buffer + 3U, m_len - 3U);
@@ -571,7 +571,7 @@ void CSerialPort::process()
 
                 case MMDVM_SET_FREQ:
                     //std::cout << "MMDVM_SET_FREQ" << std::endl;
-                    mvprintw(2, 0, "MMDVM_SET_FREQ");
+                    mvprintw(4, 0, "MMDVM_SET_FREQ");
                     insertln();
                     refresh();
                     err = sdr.setFrequency(m_buffer + 4U, m_len - 4U);
@@ -664,7 +664,7 @@ void CSerialPort::process()
                 case MMDVM_DMR_DATA1:
                     //std::cout << "MMDVM_DMR_DATA1" << std::endl;
                     //std::cout << "1" << std::flush;
-                    //mvprintw(2, 0, "MMDVM_DMR_DATA1");
+                    //mvprintw(4, 0, "MMDVM_DMR_DATA1");
                     //insertln();
                     //refresh();
                     if (m_dmrEnable) {
@@ -687,7 +687,7 @@ void CSerialPort::process()
                 case MMDVM_DMR_DATA2:
                     //std::cout << "MMDVM_DMR_DATA2" << std::endl;
                     //std::cout << "2" << std::flush;
-                    //mvprintw(2, 0, "MMDVM_DMR_DATA2");
+                    //mvprintw(4, 0, "MMDVM_DMR_DATA2");
                     //insertln();
                     //refresh();
                     if (m_dmrEnable) {
@@ -710,7 +710,7 @@ void CSerialPort::process()
 
                 case MMDVM_DMR_START:
                     //std::cout << "MMDVM_DMR_START" << std::endl;
-                    mvprintw(2, 0, "MMDVM_DMR_START %d", m_buffer[3U]);
+                    mvprintw(4, 0, "MMDVM_DMR_START %d", m_buffer[3U]);
                     insertln();
                     refresh();
                     if (m_dmrEnable) {
@@ -734,7 +734,7 @@ void CSerialPort::process()
 
                 case MMDVM_DMR_SHORTLC:
                     //std::cout << "MMDVM_DMR_SHORTLC" << std::endl;
-                    mvprintw(2, 0, "MMDVM_DMR_SHORTLC");
+                    mvprintw(4, 0, "MMDVM_DMR_SHORTLC");
                     insertln();
                     refresh();
                     if (m_dmrEnable)
@@ -747,7 +747,7 @@ void CSerialPort::process()
 
                 case MMDVM_DMR_ABORT:
                     //std::cout << "MMDVM_DMR_ABORT" << std::endl;
-                    mvprintw(2, 0, "MMDVM_DMR_ABORT %d", *(m_buffer + 3U));
+                    mvprintw(4, 0, "MMDVM_DMR_ABORT %d", *(m_buffer + 3U));
                     insertln();
                     refresh();
                     if (m_dmrEnable)
