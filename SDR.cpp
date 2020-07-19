@@ -21,6 +21,7 @@
 #include <SoapySDR/Logger.hpp>
 #include <ncurses.h>
 
+#include "Debug.h"
 #include "SDR.h"
 
 void CSDR::setStreamState(bool isEnabled)
