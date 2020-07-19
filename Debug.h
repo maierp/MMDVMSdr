@@ -29,6 +29,6 @@
 #define  DEBUG4(a,b,c,d)    serial.writeDebug((a),(b),(c),(d))
 #define  DEBUG5(a,b,c,d,e)  serial.writeDebug((a),(b),(c),(d),(e))
 
-#define  LOGCONSOLE(x,y,text,...) {}//{mvprintw(x, y, text, __VA_ARGS__); insertln(); refresh(); }
+#define  LOGCONSOLE(x,y,...) {}//{mvprintw(x, y, __VA_ARGS__); insertln(); refresh(); }
 
 #endif
