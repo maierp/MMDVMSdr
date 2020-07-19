@@ -111,7 +111,7 @@ void CDMRTX::process()
             std::lock(fifoGuard1, fifoGuard2);
             dataAvailable = m_fifo[0U].size() >= DMR_FRAME_LENGTH_BYTES || m_fifo[1U].size() >= DMR_FRAME_LENGTH_BYTES;
         }
-        if (!dataAvailable || m_frameCount < STARTUP_COUNT || m_abortCount[slotIndex] < ABORT_COUNT)
+        if (!dataAvailable || m_frameCount < STARTUP_COUNT || (m_abortCount[0] < ABORT_COUNT && m_abortCount[1] < ABORT_COUNT))
         {
             m_DataAvailableConditionVariable.wait(lock);
         }
