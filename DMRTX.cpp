@@ -370,10 +370,13 @@ void CDMRTX::createData(uint8_t slotIndex)
         for (unsigned int i = 0U; i < DMR_FRAME_LENGTH_BYTES; i++) {
             m_poBuffer[i] = m_idle[i];
             m_markBuffer[i] = MARK_NONE;
-            //mvprintw(slotIndex, 100, "I");
             //refresh();
         }
-        mvinsch(slotIndex + 2, 0, 'I' | A_NORMAL);
+        if (m_fifo[slotIndex].size() < DMR_FRAME_LENGTH_BYTES) { mvinsch(slotIndex + 2, 0, 'i' | A_NORMAL); }
+        else if (m_frameCount < STARTUP_COUNT) { mvinsch(slotIndex + 2, 0, 'f' | A_NORMAL); }
+        else if (m_abortCount[slotIndex] < ABORT_COUNT) { mvinsch(slotIndex + 2, 0, 'a' | A_NORMAL); }
+        //mvprintw(slotIndex+2, 100, "I");
+        
         //std::cout << "CDMRTX::createData(IDLE_MESSAGE) m_fifo.size() " << std::to_string(m_fifo[slotIndex].size()) << std::endl;
     }
     if (slotIndex == 1)
