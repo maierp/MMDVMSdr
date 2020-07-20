@@ -173,7 +173,7 @@ uint8_t CDMRTX::writeData1(const uint8_t* data, uint8_t length)
     }
 
     uint8_t recvData[7];
-    std::copy(data + 13, data + 13 + 6, std::begin(recvData));
+    std::copy(data + 13, data + 13 + 7, std::begin(recvData));
     recvData[0] |= 0xF0;
     recvData[6] |= 0x0F;
     uint8_t syncData[] = {0xFD, 0xFF, 0x57, 0xD7, 0x5D, 0xF5, 0xDF };
@@ -218,7 +218,7 @@ uint8_t CDMRTX::writeData2(const uint8_t* data, uint8_t length)
     }
 
     uint8_t recvData[7];
-    std::copy(data + 13, data + 13 + 6, std::begin(recvData));
+    std::copy(data + 13, data + 13 + 7, std::begin(recvData));
     recvData[0] |= 0xF0;
     recvData[6] |= 0x0F;
     uint8_t syncData[] = { 0xFD, 0xFF, 0x57, 0xD7, 0x5D, 0xF5, 0xDF };
