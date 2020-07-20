@@ -351,7 +351,7 @@ uint8_t CSerialPort::setConfig(const uint8_t* data, uint8_t length)
 
     m_modemState = modemState;
     //std::cout << "SerialPort::setConfig() Set modemState to " << std::to_string(modemState) << std::endl;
-    LOGCONSOLE(4, 0, "SerialPort::setConfig() Set modemState to %d", modemState);
+    LOGCONSOLE1(4, 0, "SerialPort::setConfig() Set modemState to %d", modemState);
 
     m_dstarEnable = dstarEnable;
     m_dmrEnable = dmrEnable;
@@ -486,7 +486,7 @@ void CSerialPort::setMode(MMDVM_STATE modemState)
     //cwIdTX.reset();
 
     m_modemState = modemState;
-    LOGCONSOLE(4, 0, "SerialPort::setMode() Set modemState to %d", modemState);
+    LOGCONSOLE1(4, 0, "SerialPort::setMode() Set modemState to %d", modemState);
     //std::cout << "SerialPort::setMode() Set modemState to " << std::to_string(modemState) << std::endl;
 }
 
@@ -686,7 +686,7 @@ void CSerialPort::process()
 
                 case MMDVM_DMR_START:
                     //std::cout << "MMDVM_DMR_START" << std::endl;
-                    LOGCONSOLE(4, 0, "MMDVM_DMR_START %d", m_buffer[3U]);
+                    LOGCONSOLE1(4, 0, "MMDVM_DMR_START %d", m_buffer[3U]);
                     if (m_dmrEnable) {
                         err = 4U;
                         if (m_len == 4U) {
@@ -719,7 +719,7 @@ void CSerialPort::process()
 
                 case MMDVM_DMR_ABORT:
                     //std::cout << "MMDVM_DMR_ABORT" << std::endl;
-                    LOGCONSOLE(4, 0, "MMDVM_DMR_ABORT %d", *(m_buffer + 3U));
+                    LOGCONSOLE1(4, 0, "MMDVM_DMR_ABORT %d", *(m_buffer + 3U));
                     if (m_dmrEnable)
                         err = dmrTX.writeAbort(m_buffer + 3U, m_len - 3U);
                     if (err != 0U) {

@@ -293,7 +293,7 @@ void CDMRTX::setStart(bool start)
         return;
 
     m_state = start ? DMRTXSTATE_SLOT1 : DMRTXSTATE_IDLE;
-    LOGCONSOLE(4, 0, "CDMRTX::setStart() m_state %d", m_state);
+    LOGCONSOLE1(4, 0, "CDMRTX::setStart() m_state %d", m_state);
     //mvprintw(4, 0, "DATA: ");
     //for (size_t i = 0; i < 33; i++)
     //{
