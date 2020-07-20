@@ -40,6 +40,7 @@ const float DMR_SYMBOL_D = -1.0f;
 
 int bufferCount[2];
 int lastBufferCount[2];
+uint8_t lastData[33];
 
 // The PR FILL and BS Data Sync pattern.
 const uint8_t IDLE_DATA[] =
@@ -174,6 +175,7 @@ uint8_t CDMRTX::writeData1(const uint8_t* data, uint8_t length)
 
     uint8_t recvData[7];
     std::copy(data + 13, data + 13 + 7, std::begin(recvData));
+    std::copy(std::begin(data), std::end(data), std::begin(lastData));
     recvData[0] |= 0xF0;
     recvData[6] |= 0x0F;
     uint8_t syncData[] = {0xFD, 0xFF, 0x57, 0xD7, 0x5D, 0xF5, 0xDF };
@@ -291,6 +293,13 @@ void CDMRTX::setStart(bool start)
 
     m_state = start ? DMRTXSTATE_SLOT1 : DMRTXSTATE_IDLE;
     LOGCONSOLE(4, 0, "CDMRTX::setStart() m_state %d", m_state);
+    mvprintw(4, 0, "DATA: ");
+    for (size_t i = 0; i < 33; i++)
+    {
+        printw("%02x", lastData[i]);
+    }
+    insertln();
+    refresh();
 
     m_frameCount = 0U;
     m_abortCount[0U] = 0U;
