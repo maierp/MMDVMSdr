@@ -30,7 +30,7 @@
 #define  DEBUG4(a,b,c,d)    serial.writeDebug((a),(b),(c),(d))
 #define  DEBUG5(a,b,c,d,e)  serial.writeDebug((a),(b),(c),(d),(e))
 
-#define  LOGCONSOLE(x, y, msg) {
+void LOGCONSOLE(int x, int y, char* msg) {
     struct timeval now;
     std::gettimeofday(&now, NULL);
     struct tm* tm = std::gmtime(&now.tv_sec);
