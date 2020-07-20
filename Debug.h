@@ -32,8 +32,8 @@
 
 void LOGCONSOLE(int x, int y, char* msg) {
     struct timeval now;
-    std::gettimeofday(&now, NULL);
-    struct tm* tm = std::gmtime(&now.tv_sec);
+    gettimeofday(&now, NULL);
+    struct tm* tm = gmtime(&now.tv_sec);
     std::cout << tm->tm_year + 1900 << "-" << tm->tm_mon + 1 << "-" << tm->tm_mday << " " << tm->tm_hour << ":" << tm->tm_min << ":" << tm->tm_sec << "." << now.tv_usec / 1000U  << msg << std::endl;
 }
 #define  LOGCONSOLE1(x, y, msg, arg) {std::cout << msg << +arg << std::endl;}
