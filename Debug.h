@@ -23,6 +23,7 @@
 #include "Config.h"
 #include "Globals.h"
 #include <sys/time.h>
+#include <iostream>
 
 #define  DEBUG1(a)          serial.writeDebug((a))
 #define  DEBUG2(a,b)        serial.writeDebug((a),(b))
