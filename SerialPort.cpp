@@ -30,6 +30,7 @@
 #include "Config.h"
 #include "Globals.h"
 #include "GitVersion.h"
+#include "Debug.h"
 
 #include "SerialPort.h"
 
