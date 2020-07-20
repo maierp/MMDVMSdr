@@ -178,7 +178,7 @@ uint8_t CDMRTX::writeData1(const uint8_t* data, uint8_t length)
     recvData[6] |= 0x0F;
     uint8_t syncData[] = {0xFD, 0xFF, 0x57, 0xD7, 0x5D, 0xF5, 0xDF };
 
-    if (std::equal(dataSync, dataSync + 6, recvData))
+    if (std::equal(syncData, syncData + 6, recvData))
     {
         LOGCONSOLE(4, 0, "Data_Sync 1");
     }
@@ -223,7 +223,7 @@ uint8_t CDMRTX::writeData2(const uint8_t* data, uint8_t length)
     recvData[6] |= 0x0F;
     uint8_t syncData[] = { 0xFD, 0xFF, 0x57, 0xD7, 0x5D, 0xF5, 0xDF };
 
-    if (std::equal(dataSync, dataSync + 6, recvData))
+    if (std::equal(syncData, syncData + 6, recvData))
     {
         LOGCONSOLE(4, 0, "Data_Sync 2");
     }
