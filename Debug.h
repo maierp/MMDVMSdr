@@ -31,7 +31,7 @@
 #define  DEBUG4(a,b,c,d)    serial.writeDebug((a),(b),(c),(d))
 #define  DEBUG5(a,b,c,d,e)  serial.writeDebug((a),(b),(c),(d),(e))
 
-void LOGCONSOLE(int x, int y, char* msg) {
+void LOGCONSOLE(int x, int y, const char* msg) {
     struct timeval now;
     gettimeofday(&now, NULL);
     struct tm* tm = gmtime(&now.tv_sec);
