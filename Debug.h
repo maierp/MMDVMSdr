@@ -22,8 +22,6 @@
 
 #include "Config.h"
 #include "Globals.h"
-#include <sys/time.h>
-#include <iostream>
 
 #define  DEBUG1(a)          serial.writeDebug((a))
 #define  DEBUG2(a,b)        serial.writeDebug((a),(b))
@@ -31,12 +29,7 @@
 #define  DEBUG4(a,b,c,d)    serial.writeDebug((a),(b),(c),(d))
 #define  DEBUG5(a,b,c,d,e)  serial.writeDebug((a),(b),(c),(d),(e))
 
-void LOGCONSOLE(int x, int y, const char* msg) {
-    struct timeval now;
-    gettimeofday(&now, NULL);
-    struct tm* tm = gmtime(&now.tv_sec);
-    std::cout << tm->tm_year + 1900 << "-" << tm->tm_mon + 1 << "-" << tm->tm_mday << " " << tm->tm_hour << ":" << tm->tm_min << ":" << tm->tm_sec << "." << now.tv_usec / 1000U  << msg << std::endl;
-}
+void LOGCONSOLE(int x, int y, const char* msg);
 #define  LOGCONSOLE1(x, y, msg, arg) {std::cout << msg << +arg << std::endl;}
 //#define  LOGCONSOLE(x,y,...) {std::cout << }//{mvprintw(x, y, __VA_ARGS__); insertln(); refresh(); }
 
