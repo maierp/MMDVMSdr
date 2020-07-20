@@ -646,8 +646,6 @@ void CSerialPort::process()
                     break;
 
                 case MMDVM_DMR_DATA1:
-                    //std::cout << "MMDVM_DMR_DATA1" << std::endl;
-                    //std::cout << "1" << std::flush;
                     //LOGCONSOLE(4, 0, "MMDVM_DMR_DATA1");
                     if (m_dmrEnable) {
                         if (m_modemState == STATE_IDLE || m_modemState == STATE_DMR) {
@@ -667,8 +665,6 @@ void CSerialPort::process()
                     break;
 
                 case MMDVM_DMR_DATA2:
-                    //std::cout << "MMDVM_DMR_DATA2" << std::endl;
-                    //std::cout << "2" << std::flush;
                     //LOGCONSOLE(4, 0, "MMDVM_DMR_DATA2");
                     if (m_dmrEnable) {
                         if (m_modemState == STATE_IDLE || m_modemState == STATE_DMR) {

@@ -172,6 +172,17 @@ uint8_t CDMRTX::writeData1(const uint8_t* data, uint8_t length)
         }
     }
 
+    uint8_t recvData[7];
+    std::copy(std::begin(data + 13), std::end(data + 13 + 6), std::begin(recvData));
+    recvData[0] |= 0xF0;
+    recvData[6] |= 0x0F;
+    uint8_t syncData[] = {0xFD, 0xFF, 0x57, 0xD7, 0x5D, 0xF5, 0xDF };
+
+    if (std::memcmp(dataSync, recvData, 7) == 0)
+    {
+        LOGCONSOLE(4, 0, "Data_Sync 1");
+    }
+
     {
         std::lock_guard<std::mutex> lock(m_fifoMutex[0]);
         for (uint8_t i = 0U; i < DMR_FRAME_LENGTH_BYTES; i++)
@@ -204,6 +215,17 @@ uint8_t CDMRTX::writeData2(const uint8_t* data, uint8_t length)
             mvdelch(1, 0);
             bufferCount[1]--;
         }
+    }
+
+    uint8_t recvData[7];
+    std::copy(std::begin(data + 13), std::end(data + 13 + 6), std::begin(recvData));
+    recvData[0] |= 0xF0;
+    recvData[6] |= 0x0F;
+    uint8_t syncData[] = { 0xFD, 0xFF, 0x57, 0xD7, 0x5D, 0xF5, 0xDF };
+
+    if (std::memcmp(dataSync, recvData, 7) == 0)
+    {
+        LOGCONSOLE(4, 0, "Data_Sync 2");
     }
 
     {
