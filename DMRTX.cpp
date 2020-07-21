@@ -183,35 +183,34 @@ uint8_t CDMRTX::writeData1(const uint8_t* data, uint8_t length)
         std::lock_guard<std::mutex> lock(m_fifoMutex[0]);
         std::queue<uint8_t>().swap(m_fifo[0U]); //clear the buffer
         m_abort[0U] = false;
-        while (bufferCount[0] > 0) {
-            mvdelch(0, 0);
-            bufferCount[0]--;
-        }
+        //while (bufferCount[0] > 0) {
+        //    mvdelch(0, 0);
+        //    bufferCount[0]--;
+        //}
     }
 
-    uint8_t recvData[7];
-    std::copy(data + 14, data + 14 + 7, std::begin(recvData));
-    std::vector<uint8_t>myvector(data + 1, data + 1 + 33);
-    std::copy(myvector.begin(), myvector.end(), std::begin(lastData));
-    recvData[0] |= 0xF0;
-    recvData[6] |= 0x0F;
-    uint8_t syncData[] = {0xFD, 0xFF, 0x57, 0xD7, 0x5D, 0xF5, 0xDF };
+    //uint8_t recvData[7];
+    //std::copy(data + 14, data + 14 + 7, std::begin(recvData));
+    //std::vector<uint8_t>myvector(data + 1, data + 1 + 33);
+    //std::copy(myvector.begin(), myvector.end(), std::begin(lastData));
+    //recvData[0] |= 0xF0;
+    //recvData[6] |= 0x0F;
+    //uint8_t syncData[] = {0xFD, 0xFF, 0x57, 0xD7, 0x5D, 0xF5, 0xDF };
 
-    if (std::equal(syncData, syncData + 6, recvData))
-    {
-        LOGCONSOLE(4, 0, "Data_Sync 1");
-    }
+    //if (std::equal(syncData, syncData + 6, recvData))
+    //{
+    //    LOGCONSOLE(4, 0, "Data_Sync 1");
+    //}
 
     {
         std::lock_guard<std::mutex> lock(m_fifoMutex[0]);
         for (uint8_t i = 0U; i < DMR_FRAME_LENGTH_BYTES; i++)
             m_fifo[0U].push(data[i + 1U]);
         m_lastDataSeen[0] = std::chrono::steady_clock::now();
-        mvaddch(0, bufferCount[0], ACS_BLOCK);
-        bufferCount[0]++;
-        refresh();
+        //mvaddch(0, bufferCount[0], ACS_BLOCK);
+        //bufferCount[0]++;
+        //refresh();
     }
-    //std::cout << "CDMRTX::writeData1(): m_fifo[0].size:" << std::to_string(m_fifo[0U].size()) << std::endl;
 
     if (m_state == DMRTXSTATE_IDLE)
     {
@@ -231,33 +230,32 @@ uint8_t CDMRTX::writeData2(const uint8_t* data, uint8_t length)
         std::lock_guard<std::mutex> lock(m_fifoMutex[1]);
         std::queue<uint8_t>().swap(m_fifo[1U]); //clear the buffer
         m_abort[1U] = false;
-        while (bufferCount[1] > 0) {
-            mvdelch(1, 0);
-            bufferCount[1]--;
-        }
+        //while (bufferCount[1] > 0) {
+        //    mvdelch(1, 0);
+        //    bufferCount[1]--;
+        //}
     }
 
-    uint8_t recvData[7];
-    std::copy(data + 14, data + 14 + 7, std::begin(recvData));
-    recvData[0] |= 0xF0;
-    recvData[6] |= 0x0F;
-    uint8_t syncData[] = { 0xFD, 0xFF, 0x57, 0xD7, 0x5D, 0xF5, 0xDF };
+    //uint8_t recvData[7];
+    //std::copy(data + 14, data + 14 + 7, std::begin(recvData));
+    //recvData[0] |= 0xF0;
+    //recvData[6] |= 0x0F;
+    //uint8_t syncData[] = { 0xFD, 0xFF, 0x57, 0xD7, 0x5D, 0xF5, 0xDF };
 
-    if (std::equal(syncData, syncData + 6, recvData))
-    {
-        LOGCONSOLE(4, 0, "Data_Sync 2");
-    }
+    //if (std::equal(syncData, syncData + 6, recvData))
+    //{
+    //    LOGCONSOLE(4, 0, "Data_Sync 2");
+    //}
 
     {
         std::lock_guard<std::mutex> lock(m_fifoMutex[1]);
         for (uint8_t i = 0U; i < DMR_FRAME_LENGTH_BYTES; i++)
             m_fifo[1U].push(data[i + 1U]);
         m_lastDataSeen[1] = std::chrono::steady_clock::now();
-        mvaddch(1, bufferCount[1], ACS_BLOCK);
-        bufferCount[1]++;
-        refresh();
+        //mvaddch(1, bufferCount[1], ACS_BLOCK);
+        //bufferCount[1]++;
+        //refresh();
     }
-    //std::cout << "CDMRTX::writeData2(): m_fifo[1].size:" << std::to_string(m_fifo[1U].size()) << std::endl;
 
     if (m_state == DMRTXSTATE_IDLE)
     {
@@ -406,33 +404,27 @@ void CDMRTX::createData(uint8_t slotIndex)
             m_fifo[slotIndex].pop();
             m_markBuffer[i] = MARK_NONE;
         }
-        mvinsch(slotIndex+2, 0, 'X' | A_NORMAL);
-        //mvdelch(slotIndex, 100);
-        mvdelch(slotIndex, 0);
-        bufferCount[slotIndex]--;
+        //mvinsch(slotIndex+2, 0, 'X' | A_NORMAL);
+        //mvdelch(slotIndex, 0);
+        //bufferCount[slotIndex]--;
         //refresh();
-        //std::cout << "CDMRTX::createData() m_fifo.size() " << std::to_string(m_fifo[slotIndex].size()) << std::endl;
     }
     else {
         m_abort[slotIndex] = false;
-        /////////////////////////////////////////////////////std::cout << " i" << +(slotIndex+1) << " " << std::flush;
         // Transmit an idle message
         for (unsigned int i = 0U; i < DMR_FRAME_LENGTH_BYTES; i++) {
             m_poBuffer[i] = m_idle[i];
             m_markBuffer[i] = MARK_NONE;
-            //refresh();
         }
         //if (m_fifo[slotIndex].size() < DMR_FRAME_LENGTH_BYTES) { mvinsch(slotIndex + 2, 0, 'i' | A_NORMAL); }
         //else if (m_frameCount < STARTUP_COUNT) { mvinsch(slotIndex + 2, 0, 'f' | A_NORMAL); }
         //else if (m_abortCount[slotIndex] < ABORT_COUNT) { mvinsch(slotIndex + 2, 0, 'a' | A_NORMAL); }
-        mvprintw(slotIndex+2, 100, "I");
-        
-        //std::cout << "CDMRTX::createData(IDLE_MESSAGE) m_fifo.size() " << std::to_string(m_fifo[slotIndex].size()) << std::endl;
+        //mvprintw(slotIndex+2, 100, "I");
     }
-    if (slotIndex == 1)
-    {
-        refresh();
-    }
+    //if (slotIndex == 1)
+    //{
+    //    refresh();
+    //}
 
     m_poLen = DMR_FRAME_LENGTH_BYTES;
     m_poPtr = 0U;
@@ -492,7 +484,6 @@ void CDMRTX::createCACH(uint8_t txSlotIndex, uint8_t rxSlotIndex)
     }
 
     std::copy(m_shortLC + m_cachPtr, m_shortLC + m_cachPtr + 3U, m_poBuffer);
-    //::memcpy(m_poBuffer, m_shortLC + m_cachPtr, 3U);
     m_markBuffer[0U] = MARK_NONE;
     m_markBuffer[1U] = MARK_NONE;
     m_markBuffer[2U] = rxSlotIndex == 1U ? MARK_SLOT1 : MARK_SLOT2;
@@ -532,7 +523,6 @@ void CDMRTX::createCACH(uint8_t txSlotIndex, uint8_t rxSlotIndex)
 void CDMRTX::setColorCode(uint8_t colorCode)
 {
     std::copy(IDLE_DATA, IDLE_DATA + DMR_FRAME_LENGTH_BYTES, m_idle);
-    //::memcpy(m_idle, IDLE_DATA, DMR_FRAME_LENGTH_BYTES);
 
     CDMRSlotType slotType;
     slotType.encode(colorCode, DT_IDLE, m_idle);
