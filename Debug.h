@@ -29,8 +29,8 @@
 #define  DEBUG4(a,b,c,d)    serial.writeDebug((a),(b),(c),(d))
 #define  DEBUG5(a,b,c,d,e)  serial.writeDebug((a),(b),(c),(d),(e))
 
-void LOGCONSOLE(int x, int y, const char* msg);
-#define  LOGCONSOLE1(x, y, msg, arg) {std::cout << msg << +arg << std::endl;}
+void LOGCONSOLE(int x, int y, const char* msg, ...);
+//#define  LOGCONSOLE1(x, y, msg, arg) {std::cout << msg << +arg << std::endl;}
 //#define  LOGCONSOLE(x,y,...) {mvprintw(x, y, __VA_ARGS__); insertln(); refresh(); }
 //#define  LOGCONSOLE1(x,y,...) {mvprintw(x, y, __VA_ARGS__); insertln(); refresh(); }
 

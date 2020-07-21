@@ -170,11 +170,11 @@ void CSerialPort::getStatus()
     int flags(0);
     sdr.readStreamStatus(flags);
     //std::cout << "Flags: " << std::to_string(flags) << std::endl;
-    if (flags & 4) // "4" seems to be set when there is no data left in the tx buffer of the sdr
-    {
-        LOGCONSOLE(4, 0, "SerialPort::getStatus() sdr.ReadStreamStatus 0x04");
-        //setMode(STATE_IDLE);
-    }
+    //if (flags & 4) // "4" seems to be set when there is no data left in the tx buffer of the sdr
+    //{
+    //    LOGCONSOLE(4, 0, "SerialPort::getStatus() sdr.ReadStreamStatus 0x04");
+    //    //setMode(STATE_IDLE);
+    //}
     io.resetWatchdog();
 
     uint8_t reply[20U];
@@ -352,7 +352,7 @@ uint8_t CSerialPort::setConfig(const uint8_t* data, uint8_t length)
 
     m_modemState = modemState;
     //std::cout << "SerialPort::setConfig() Set modemState to " << std::to_string(modemState) << std::endl;
-    LOGCONSOLE1(4, 0, "SerialPort::setConfig() Set modemState to %d", modemState);
+    LOGCONSOLE(4, 0, "SerialPort::setConfig() Set modemState to %d", modemState);
 
     m_dstarEnable = dstarEnable;
     m_dmrEnable = dmrEnable;
@@ -487,7 +487,7 @@ void CSerialPort::setMode(MMDVM_STATE modemState)
     //cwIdTX.reset();
 
     m_modemState = modemState;
-    LOGCONSOLE1(4, 0, "SerialPort::setMode() Set modemState to %d", modemState);
+    LOGCONSOLE(4, 0, "SerialPort::setMode() Set modemState to %d", modemState);
     //std::cout << "SerialPort::setMode() Set modemState to " << std::to_string(modemState) << std::endl;
 }
 
@@ -687,7 +687,7 @@ void CSerialPort::process()
 
                 case MMDVM_DMR_START:
                     //std::cout << "MMDVM_DMR_START" << std::endl;
-                    LOGCONSOLE1(4, 0, "MMDVM_DMR_START %d", m_buffer[3U]);
+                    LOGCONSOLE(4, 0, "MMDVM_DMR_START %d", m_buffer[3U]);
                     if (m_dmrEnable) {
                         err = 4U;
                         if (m_len == 4U) {
@@ -720,7 +720,7 @@ void CSerialPort::process()
 
                 case MMDVM_DMR_ABORT:
                     //std::cout << "MMDVM_DMR_ABORT" << std::endl;
-                    LOGCONSOLE1(4, 0, "MMDVM_DMR_ABORT %d", *(m_buffer + 3U));
+                    LOGCONSOLE(4, 0, "MMDVM_DMR_ABORT %d", *(m_buffer + 3U));
                     if (m_dmrEnable)
                         err = dmrTX.writeAbort(m_buffer + 3U, m_len - 3U);
                     if (err != 0U) {

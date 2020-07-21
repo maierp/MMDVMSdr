@@ -118,8 +118,8 @@ CSDR::CSDR() :
         m_device->setGain(SOAPY_SDR_RX, 0, 64);
         //std::cout << "SDR: TXGain: " << m_device->getGain(SOAPY_SDR_TX, 0) << std::endl;
         //std::cout << "SDR: RXGain: " << m_device->getGain(SOAPY_SDR_RX, 0) << std::endl;
-        LOGCONSOLE1(4, 0, "SDR: TXGain: %d", m_device->getGain(SOAPY_SDR_TX, 0));
-        LOGCONSOLE1(4, 0, "SDR: RXGain: %d", m_device->getGain(SOAPY_SDR_RX, 0));
+        LOGCONSOLE(4, 0, "SDR: TXGain: %d", m_device->getGain(SOAPY_SDR_TX, 0));
+        LOGCONSOLE(4, 0, "SDR: RXGain: %d", m_device->getGain(SOAPY_SDR_RX, 0));
         //std::cout << "SDR: List TX antennas:" << std::endl;
         const auto antennasTX = m_device->listAntennas(SOAPY_SDR_TX, 0);
         for (const auto& antenna : antennasTX)
@@ -164,8 +164,8 @@ uint8_t CSDR::setFrequency(const uint8_t* data, uint8_t length)
     m_txFrequency = (data[7] << 24) + (data[6] << 16) + (data[5] << 8) + data[4];
     //std::cout << "SDR: Set RX frequency: " << m_rxFrequency << std::endl;
     //std::cout << "SDR: Set TX frequency: " << m_txFrequency << std::endl;
-    LOGCONSOLE1(4, 0, "SDR: Set RX frequency: %d", m_rxFrequency);
-    LOGCONSOLE1(4, 0, "SDR: Set TX frequency: %d", m_txFrequency);
+    LOGCONSOLE(4, 0, "SDR: Set RX frequency: %d", m_rxFrequency);
+    LOGCONSOLE(4, 0, "SDR: Set TX frequency: %d", m_txFrequency);
     m_device->setFrequency(SOAPY_SDR_TX, 0, m_txFrequency);
     m_device->setFrequency(SOAPY_SDR_RX, 0, m_rxFrequency);
     return 0U;
