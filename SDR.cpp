@@ -20,6 +20,7 @@
 #include <cstddef> //size_t
 #include <SoapySDR/Logger.hpp>
 #include <ncurses.h>
+#include <string>
 
 #include "Debug.h"
 #include "SDR.h"
@@ -120,24 +121,24 @@ CSDR::CSDR() :
         const auto antennasTX = m_device->listAntennas(SOAPY_SDR_TX, 0);
         for (const auto& antenna : antennasTX)
         {
-            LOGCONSOLE(4, 0, "SDR:    %s", antenna);
+            LOGCONSOLE(4, 0, "SDR:    %s", antenna.c_str());
         }
-        LOGCONSOLE(4, 0, "SDR: Selected TX antenna: %s", m_device->getAntenna(SOAPY_SDR_TX, 0));
+        LOGCONSOLE(4, 0, "SDR: Selected TX antenna: %s", m_device->getAntenna(SOAPY_SDR_TX, 0).c_str());
 
         LOGCONSOLE(4, 0, "SDR: List RX antennas:");
         const auto antennasRX = m_device->listAntennas(SOAPY_SDR_RX, 0);
         for (const auto& antenna : antennasRX)
         {
-            LOGCONSOLE(4, 0, "SDR:    %s", antenna);
+            LOGCONSOLE(4, 0, "SDR:    %s", antenna.c_str());
         }
-        LOGCONSOLE(4, 0, "SDR: Selected RX antenna: %s", m_device->getAntenna(SOAPY_SDR_RX, 0));
+        LOGCONSOLE(4, 0, "SDR: Selected RX antenna: %s", m_device->getAntenna(SOAPY_SDR_RX, 0).c_str());
 
         m_TXformat = m_device->getNativeStreamFormat(SOAPY_SDR_TX, 0, m_TXfullScale);
         m_RXformat = m_device->getNativeStreamFormat(SOAPY_SDR_RX, 0, m_RXfullScale);
         //m_TXstream = m_device->setupStream(SOAPY_SDR_TX, m_TXformat);
         m_RXstream = m_device->setupStream(SOAPY_SDR_RX, m_RXformat);
-        LOGCONSOLE(4, 0, "SDR: TX Format: %s FullScale: %f", m_TXformat, m_TXfullScale);
-        LOGCONSOLE(4, 0, "SDR: RX Format: %s FullScale: %f", m_RXformat, m_RXfullScale);
+        LOGCONSOLE(4, 0, "SDR: TX Format: %s FullScale: %f", m_TXformat.c_str(), m_TXfullScale);
+        LOGCONSOLE(4, 0, "SDR: RX Format: %s FullScale: %f", m_RXformat.c_str(), m_RXfullScale);
         setStreamState(true);
         setStreamState(false);
     }
