@@ -149,10 +149,10 @@ void dmrThreadRXProcess()
  **********************************************************************/
 int main()
 {
-    //initscr();
-    //cbreak();
-    //clear();
-    //refresh();
+    initscr();
+    cbreak();
+    clear();
+    refresh();
     //cout << "MMDVM-SDR is starting" << endl;
 
     std::thread dmrThread(dmrThreadTXProcess);

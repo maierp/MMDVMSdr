@@ -107,7 +107,7 @@ void CDMRTX::process()
     }
 
     if (m_poLen == 0U) {
-        //Wait for Data to process
+        //Wait for enough Data to process
         std::chrono::steady_clock::time_point now;
         std::unique_lock<std::mutex> lock(m_DataAvailableMutex);
         bool waitForData = true;
@@ -132,18 +132,6 @@ void CDMRTX::process()
                 m_DataAvailableConditionVariable.wait(lock);
             }
         }
-
-        //bool dataAvailable = false;
-        //{
-        //    std::unique_lock<std::mutex> fifoGuard1(m_fifoMutex[0], std::defer_lock);
-        //    std::unique_lock<std::mutex> fifoGuard2(m_fifoMutex[1], std::defer_lock);
-        //    std::lock(fifoGuard1, fifoGuard2);
-        //    dataAvailable = m_fifo[0U].size() >= DMR_FRAME_LENGTH_BYTES || m_fifo[1U].size() >= DMR_FRAME_LENGTH_BYTES;
-        //}
-        //if (!dataAvailable || m_frameCount < STARTUP_COUNT || (m_abortCount[0] < ABORT_COUNT && m_abortCount[1] < ABORT_COUNT))
-        //{
-        //    m_DataAvailableConditionVariable.wait(lock);
-        //}
         
         sdr.setStreamState(true); // Turn on SDR if not already
         switch (m_state) {
@@ -195,10 +183,10 @@ uint8_t CDMRTX::writeData1(const uint8_t* data, uint8_t length)
         std::lock_guard<std::mutex> lock(m_fifoMutex[0]);
         std::queue<uint8_t>().swap(m_fifo[0U]); //clear the buffer
         m_abort[0U] = false;
-        //while (bufferCount[0] > 0) {
-        //    mvdelch(0, 0);
-        //    bufferCount[0]--;
-        //}
+        while (bufferCount[0] > 0) {
+            mvdelch(0, 0);
+            bufferCount[0]--;
+        }
     }
 
     uint8_t recvData[7];
@@ -219,9 +207,9 @@ uint8_t CDMRTX::writeData1(const uint8_t* data, uint8_t length)
         for (uint8_t i = 0U; i < DMR_FRAME_LENGTH_BYTES; i++)
             m_fifo[0U].push(data[i + 1U]);
         m_lastDataSeen[0] = std::chrono::steady_clock::now();
-        //mvaddch(0, bufferCount[0], ACS_BLOCK);
-        //bufferCount[0]++;
-        //refresh();
+        mvaddch(0, bufferCount[0], ACS_BLOCK);
+        bufferCount[0]++;
+        refresh();
     }
     //std::cout << "CDMRTX::writeData1(): m_fifo[0].size:" << std::to_string(m_fifo[0U].size()) << std::endl;
 
@@ -243,10 +231,10 @@ uint8_t CDMRTX::writeData2(const uint8_t* data, uint8_t length)
         std::lock_guard<std::mutex> lock(m_fifoMutex[1]);
         std::queue<uint8_t>().swap(m_fifo[1U]); //clear the buffer
         m_abort[1U] = false;
-        //while (bufferCount[1] > 0) {
-        //    mvdelch(1, 0);
-        //    bufferCount[1]--;
-        //}
+        while (bufferCount[1] > 0) {
+            mvdelch(1, 0);
+            bufferCount[1]--;
+        }
     }
 
     uint8_t recvData[7];
@@ -265,9 +253,9 @@ uint8_t CDMRTX::writeData2(const uint8_t* data, uint8_t length)
         for (uint8_t i = 0U; i < DMR_FRAME_LENGTH_BYTES; i++)
             m_fifo[1U].push(data[i + 1U]);
         m_lastDataSeen[1] = std::chrono::steady_clock::now();
-        //mvaddch(1, bufferCount[1], ACS_BLOCK);
-        //bufferCount[1]++;
-        //refresh();
+        mvaddch(1, bufferCount[1], ACS_BLOCK);
+        bufferCount[1]++;
+        refresh();
     }
     //std::cout << "CDMRTX::writeData2(): m_fifo[1].size:" << std::to_string(m_fifo[1U].size()) << std::endl;
 
@@ -418,11 +406,11 @@ void CDMRTX::createData(uint8_t slotIndex)
             m_fifo[slotIndex].pop();
             m_markBuffer[i] = MARK_NONE;
         }
-        //mvinsch(slotIndex+2, 0, 'X' | A_NORMAL);
-        ////mvdelch(slotIndex, 100);
-        //mvdelch(slotIndex, 0);
-        //bufferCount[slotIndex]--;
-        ////refresh();
+        mvinsch(slotIndex+2, 0, 'X' | A_NORMAL);
+        //mvdelch(slotIndex, 100);
+        mvdelch(slotIndex, 0);
+        bufferCount[slotIndex]--;
+        //refresh();
         //std::cout << "CDMRTX::createData() m_fifo.size() " << std::to_string(m_fifo[slotIndex].size()) << std::endl;
     }
     else {
@@ -437,7 +425,7 @@ void CDMRTX::createData(uint8_t slotIndex)
         //if (m_fifo[slotIndex].size() < DMR_FRAME_LENGTH_BYTES) { mvinsch(slotIndex + 2, 0, 'i' | A_NORMAL); }
         //else if (m_frameCount < STARTUP_COUNT) { mvinsch(slotIndex + 2, 0, 'f' | A_NORMAL); }
         //else if (m_abortCount[slotIndex] < ABORT_COUNT) { mvinsch(slotIndex + 2, 0, 'a' | A_NORMAL); }
-        //mvprintw(slotIndex+2, 100, "I");
+        mvprintw(slotIndex+2, 100, "I");
         
         //std::cout << "CDMRTX::createData(IDLE_MESSAGE) m_fifo.size() " << std::to_string(m_fifo[slotIndex].size()) << std::endl;
     }
