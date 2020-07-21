@@ -3,7 +3,8 @@
 
 #include "Debug.h"
 
-void LOGCONSOLE(int x, int y, const char* msg, ...) {
+#ifndef USENCURSES
+void LOGCONSOLE(const char* msg, ...) {
     va_list args;
     va_start(args, msg);
     struct timeval now;
@@ -13,3 +14,4 @@ void LOGCONSOLE(int x, int y, const char* msg, ...) {
     vprintf(msg, args);
     printf("\n");
 }
+#endif //USENCURSES

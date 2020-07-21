@@ -19,7 +19,6 @@
 #include <iostream>
 #include <cstddef> //size_t
 #include <SoapySDR/Logger.hpp>
-#include <ncurses.h>
 #include <string>
 
 #include "Debug.h"
@@ -32,15 +31,15 @@ void CSDR::setStreamState(bool isEnabled)
     {
         if (isEnabled)
         {
-            LOGCONSOLE(4, 0, "SDR: Enable Modem");
+            LOGCONSOLE("SDR: Enable Modem");
             m_TXstream = m_device->setupStream(SOAPY_SDR_TX, m_TXformat);
             m_device->activateStream(m_TXstream);
             m_numElems = m_device->getStreamMTU(m_TXstream); // Number of IQ pairs
-            LOGCONSOLE(4, 0, "SDR: NumElements: %d", m_numElems);
+            LOGCONSOLE("SDR: NumElements: %d", m_numElems);
         }
         else
         {
-            LOGCONSOLE(4, 0, "SDR: Disable Modem");
+            LOGCONSOLE("SDR: Disable Modem");
             m_device->deactivateStream(m_TXstream);
             m_device->closeStream(m_TXstream);
             //SoapySDR::Device::unmake(m_device);
@@ -92,7 +91,7 @@ void CSDR::read(float* symbols, uint16_t length)
 
 static void SoapyPocoLogHandler(const SoapySDR::LogLevel logLevel, const char* message)
 {
-    LOGCONSOLE(4, 0, message);
+    LOGCONSOLE(message);
 }
 
 CSDR::CSDR() :
@@ -115,30 +114,30 @@ CSDR::CSDR() :
         m_device->setFrequency(SOAPY_SDR_RX, 0, 430262500);
         m_device->setGain(SOAPY_SDR_TX, 0, 64);
         m_device->setGain(SOAPY_SDR_RX, 0, 64);
-        LOGCONSOLE(4, 0, "SDR: TXGain: %d", m_device->getGain(SOAPY_SDR_TX, 0));
-        LOGCONSOLE(4, 0, "SDR: RXGain: %d", m_device->getGain(SOAPY_SDR_RX, 0));
-        LOGCONSOLE(4, 0, "SDR: List TX antennas:");
+        LOGCONSOLE("SDR: TXGain: %d", m_device->getGain(SOAPY_SDR_TX, 0));
+        LOGCONSOLE("SDR: RXGain: %d", m_device->getGain(SOAPY_SDR_RX, 0));
+        LOGCONSOLE("SDR: List TX antennas:");
         const auto antennasTX = m_device->listAntennas(SOAPY_SDR_TX, 0);
         for (const auto& antenna : antennasTX)
         {
-            LOGCONSOLE(4, 0, "SDR:    %s", antenna.c_str());
+            LOGCONSOLE("SDR:    %s", antenna.c_str());
         }
-        LOGCONSOLE(4, 0, "SDR: Selected TX antenna: %s", m_device->getAntenna(SOAPY_SDR_TX, 0).c_str());
+        LOGCONSOLE("SDR: Selected TX antenna: %s", m_device->getAntenna(SOAPY_SDR_TX, 0).c_str());
 
-        LOGCONSOLE(4, 0, "SDR: List RX antennas:");
+        LOGCONSOLE("SDR: List RX antennas:");
         const auto antennasRX = m_device->listAntennas(SOAPY_SDR_RX, 0);
         for (const auto& antenna : antennasRX)
         {
-            LOGCONSOLE(4, 0, "SDR:    %s", antenna.c_str());
+            LOGCONSOLE("SDR:    %s", antenna.c_str());
         }
-        LOGCONSOLE(4, 0, "SDR: Selected RX antenna: %s", m_device->getAntenna(SOAPY_SDR_RX, 0).c_str());
+        LOGCONSOLE("SDR: Selected RX antenna: %s", m_device->getAntenna(SOAPY_SDR_RX, 0).c_str());
 
         m_TXformat = m_device->getNativeStreamFormat(SOAPY_SDR_TX, 0, m_TXfullScale);
         m_RXformat = m_device->getNativeStreamFormat(SOAPY_SDR_RX, 0, m_RXfullScale);
         //m_TXstream = m_device->setupStream(SOAPY_SDR_TX, m_TXformat);
         m_RXstream = m_device->setupStream(SOAPY_SDR_RX, m_RXformat);
-        LOGCONSOLE(4, 0, "SDR: TX Format: %s FullScale: %f", m_TXformat.c_str(), m_TXfullScale);
-        LOGCONSOLE(4, 0, "SDR: RX Format: %s FullScale: %f", m_RXformat.c_str(), m_RXfullScale);
+        LOGCONSOLE("SDR: TX Format: %s FullScale: %f", m_TXformat.c_str(), m_TXfullScale);
+        LOGCONSOLE("SDR: RX Format: %s FullScale: %f", m_RXformat.c_str(), m_RXfullScale);
         setStreamState(true);
         setStreamState(false);
     }
@@ -156,8 +155,8 @@ uint8_t CSDR::setFrequency(const uint8_t* data, uint8_t length)
 
     m_rxFrequency = (data[3] << 24) + (data[2] << 16) + (data[1] << 8) + data[0];
     m_txFrequency = (data[7] << 24) + (data[6] << 16) + (data[5] << 8) + data[4];
-    LOGCONSOLE(4, 0, "SDR: Set RX frequency: %d", m_rxFrequency);
-    LOGCONSOLE(4, 0, "SDR: Set TX frequency: %d", m_txFrequency);
+    LOGCONSOLE("SDR: Set RX frequency: %d", m_rxFrequency);
+    LOGCONSOLE("SDR: Set TX frequency: %d", m_txFrequency);
     m_device->setFrequency(SOAPY_SDR_TX, 0, m_txFrequency);
     m_device->setFrequency(SOAPY_SDR_RX, 0, m_rxFrequency);
     return 0U;
