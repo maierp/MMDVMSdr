@@ -1,9 +1,10 @@
 ifdef USENCURSES
 LIBNCURSES = -lncurses
+DEFS_NCURSES=-DUSENCURSES
 endif
 CC      = cc
 CXX     = c++
-CFLAGS  = -g -O3 -Wall -std=c++0x
+CFLAGS  = -g -O3 -Wall -std=c++0x $(DEFS_NCURSES)
 LIBS    = -lSoapySDR -lliquid -lpthread $(LIBNCURSES)
 LDFLAGS = -g
 
