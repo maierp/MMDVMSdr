@@ -1,7 +1,10 @@
+ifdef USENCURSES
+LIBNCURSES = -lncurses
+endif
 CC      = cc
 CXX     = c++
 CFLAGS  = -g -O3 -Wall -std=c++0x
-LIBS    = -lSoapySDR -lliquid -lpthread -lncurses
+LIBS    = -lSoapySDR -lliquid -lpthread $(LIBNCURSES)
 LDFLAGS = -g
 
 OBJECTS =	MMDVMSdr.o SerialPort.o IO.o DMRTX.o DMRSlotType.o SDR.o Debug.o
