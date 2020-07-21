@@ -114,7 +114,7 @@ CSerialPort::CSerialPort() :
     grantpt(m_serial_fd);
     unlockpt(m_serial_fd);
     char* pts_name = ptsname(m_serial_fd);
-    //std::cout << "ptsname: " << pts_name << std::endl;
+    LOGCONSOLE(4, 0, "ptsname: %s", pts_name);
 
     // Try to the virtual serial port if it already exists
     remove(SERIAL_DEVICE_FILE);

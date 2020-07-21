@@ -153,7 +153,7 @@ int main()
     //cbreak();
     //clear();
     //refresh();
-    //cout << "MMDVM-SDR is starting" << endl;
+    LOGCONSOLE(4, 0, "MMDVM-SDR is starting");
 
     std::thread dmrThread(dmrThreadTXProcess);
     for (;;)
