@@ -88,6 +88,7 @@
     <ClCompile Include="DMRTX.cpp" />
     <ClCompile Include="IO.cpp" />
     <ClCompile Include="MMDVMSdr.cpp" />
+    <ClCompile Include="Debug.cpp" />
     <ClCompile Include="SDR.cpp" />
     <ClCompile Include="SerialPort.cpp" />
   </ItemGroup>
