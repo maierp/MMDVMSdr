@@ -25,6 +25,7 @@
 #include <queue>
 #include <mutex>
 #include <condition_variable>
+#include <chrono>
 
 #include "Config.h"
 #include "DMRDefines.h"
@@ -83,6 +84,7 @@ private:
     bool                             m_abort[2U];
     std::condition_variable          m_DataAvailableConditionVariable;
     std::mutex                       m_DataAvailableMutex;
+    std::chrono::steady_clock::time_point m_lastDataSeen[2];
 
     void createData(uint8_t slotIndex);
     void createCACH(uint8_t txSlotIndex, uint8_t rxSlotIndex);
