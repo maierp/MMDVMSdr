@@ -18,7 +18,10 @@
 
 #include <iostream>
 #include <cstddef> //size_t
+#include <SoapySDR/Logger.hpp>
+#include <string>
 
+#include "Debug.h"
 #include "SDR.h"
 
 void CSDR::setStreamState(bool isEnabled)
@@ -28,15 +31,15 @@ void CSDR::setStreamState(bool isEnabled)
     {
         if (isEnabled)
         {
-            std::cout << "SDR: Enable Modem" << std::endl;
+            LOGCONSOLE("SDR: Enable Modem");
             m_TXstream = m_device->setupStream(SOAPY_SDR_TX, m_TXformat);
             m_device->activateStream(m_TXstream);
             m_numElems = m_device->getStreamMTU(m_TXstream); // Number of IQ pairs
-            std::cout << "SDR: NumElements: " << m_numElems << std::endl;
+            LOGCONSOLE("SDR: NumElements: %d", m_numElems);
         }
         else
         {
-            std::cout << "SDR: Disable Modem" << std::endl;
+            LOGCONSOLE("SDR: Disable Modem");
             m_device->deactivateStream(m_TXstream);
             m_device->closeStream(m_TXstream);
             //SoapySDR::Device::unmake(m_device);
@@ -86,6 +89,11 @@ void CSDR::read(float* symbols, uint16_t length)
     m_device->readStream(m_RXstream, m_RXBuffs.data(), 1020, flags, timeNs);
 }
 
+static void SoapyPocoLogHandler(const SoapySDR::LogLevel logLevel, const char* message)
+{
+    LOGCONSOLE(message);
+}
+
 CSDR::CSDR() :
     m_streamState(false),
     m_device(nullptr),
@@ -98,6 +106,7 @@ CSDR::CSDR() :
 {
     try
     {
+        SoapySDR::registerLogHandler(&SoapyPocoLogHandler);
         m_device = SoapySDR::Device::make("driver=lime");
         m_device->setSampleRate(SOAPY_SDR_TX, 0, m_samplerate);
         m_device->setSampleRate(SOAPY_SDR_RX, 0, m_samplerate);
@@ -105,38 +114,36 @@ CSDR::CSDR() :
         m_device->setFrequency(SOAPY_SDR_RX, 0, 430262500);
         m_device->setGain(SOAPY_SDR_TX, 0, 64);
         m_device->setGain(SOAPY_SDR_RX, 0, 64);
-        std::cout << "SDR: TXGain: " << m_device->getGain(SOAPY_SDR_TX, 0) << std::endl;
-        std::cout << "SDR: RXGain: " << m_device->getGain(SOAPY_SDR_RX, 0) << std::endl;
-
-        std::cout << "SDR: List TX antennas:" << std::endl;
+        LOGCONSOLE("SDR: TXGain: %d", m_device->getGain(SOAPY_SDR_TX, 0));
+        LOGCONSOLE("SDR: RXGain: %d", m_device->getGain(SOAPY_SDR_RX, 0));
+        LOGCONSOLE("SDR: List TX antennas:");
         const auto antennasTX = m_device->listAntennas(SOAPY_SDR_TX, 0);
         for (const auto& antenna : antennasTX)
         {
-            std::cout << "SDR:    " << antenna << std::endl;
+            LOGCONSOLE("SDR:    %s", antenna.c_str());
         }
-        std::cout << "SDR: Selected TX antenna: " << m_device->getAntenna(SOAPY_SDR_TX, 0) << std::endl;
+        LOGCONSOLE("SDR: Selected TX antenna: %s", m_device->getAntenna(SOAPY_SDR_TX, 0).c_str());
 
-        std::cout << "SDR: List RX antennas:" << std::endl;
+        LOGCONSOLE("SDR: List RX antennas:");
         const auto antennasRX = m_device->listAntennas(SOAPY_SDR_RX, 0);
         for (const auto& antenna : antennasRX)
         {
-            std::cout << "SDR:    " << antenna << std::endl;
+            LOGCONSOLE("SDR:    %s", antenna.c_str());
         }
-        std::cout << "SDR: Selected RX antenna: " << m_device->getAntenna(SOAPY_SDR_RX, 0) << std::endl;
+        LOGCONSOLE("SDR: Selected RX antenna: %s", m_device->getAntenna(SOAPY_SDR_RX, 0).c_str());
 
         m_TXformat = m_device->getNativeStreamFormat(SOAPY_SDR_TX, 0, m_TXfullScale);
         m_RXformat = m_device->getNativeStreamFormat(SOAPY_SDR_RX, 0, m_RXfullScale);
         //m_TXstream = m_device->setupStream(SOAPY_SDR_TX, m_TXformat);
         m_RXstream = m_device->setupStream(SOAPY_SDR_RX, m_RXformat);
-        std::cout << "SDR: TX Format:" << m_TXformat << " FullScale:" << m_TXfullScale << std::endl;
-        std::cout << "SDR: RX Format:" << m_RXformat << " FullScale:" << m_RXfullScale << std::endl;
+        LOGCONSOLE("SDR: TX Format: %s FullScale: %f", m_TXformat.c_str(), m_TXfullScale);
+        LOGCONSOLE("SDR: RX Format: %s FullScale: %f", m_RXformat.c_str(), m_RXfullScale);
         setStreamState(true);
         setStreamState(false);
-        //m_device->activateStream(m_RXstream);
     }
     catch (const std::exception& ex)
     {
-        std::cerr << "Error in rate test: " << ex.what() << std::endl;
+        //std::cerr << "Error in rate test: " << ex.what() << std::endl;
         SoapySDR::Device::unmake(m_device);
     }
 }
@@ -148,8 +155,8 @@ uint8_t CSDR::setFrequency(const uint8_t* data, uint8_t length)
 
     m_rxFrequency = (data[3] << 24) + (data[2] << 16) + (data[1] << 8) + data[0];
     m_txFrequency = (data[7] << 24) + (data[6] << 16) + (data[5] << 8) + data[4];
-    std::cout << "SDR: Set RX frequency: " << m_rxFrequency << std::endl;
-    std::cout << "SDR: Set TX frequency: " << m_txFrequency << std::endl;
+    LOGCONSOLE("SDR: Set RX frequency: %d", m_rxFrequency);
+    LOGCONSOLE("SDR: Set TX frequency: %d", m_txFrequency);
     m_device->setFrequency(SOAPY_SDR_TX, 0, m_txFrequency);
     m_device->setFrequency(SOAPY_SDR_RX, 0, m_rxFrequency);
     return 0U;

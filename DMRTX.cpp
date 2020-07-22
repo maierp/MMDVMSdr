@@ -37,6 +37,8 @@ const float DMR_SYMBOL_B = 1.0f / 3.0f;
 const float DMR_SYMBOL_C = -1.0f / 3.0f;
 const float DMR_SYMBOL_D = -1.0f;
 
+#define DATA_TIMEOUT 150
+
 // The PR FILL and BS Data Sync pattern.
 const uint8_t IDLE_DATA[] =
 { 0x53U, 0xC2U, 0x5EU, 0xABU, 0xA8U, 0x67U, 0x1DU, 0xC7U, 0x38U, 0x3BU, 0xD9U,
@@ -57,8 +59,8 @@ const uint8_t BIT_MASK_TABLE[] = { 0x80U, 0x40U, 0x20U, 0x10U, 0x08U, 0x04U, 0x0
 #define WRITE_BIT1(p,i,b) p[(i)>>3] = (b) ? (p[(i)>>3] | BIT_MASK_TABLE[(i)&7]) : (p[(i)>>3] & ~BIT_MASK_TABLE[(i)&7])
 #define READ_BIT1(p,i)    (p[(i)>>3] & BIT_MASK_TABLE[(i)&7])
 
-const uint32_t STARTUP_COUNT = 0U; //20U
-const uint32_t ABORT_COUNT = 6U;
+const uint32_t STARTUP_COUNT = 10U; //20U
+const uint32_t ABORT_COUNT = 3U;// 6U;
 
 CDMRTX::CDMRTX() :
     m_fmod(freqmod_create(DMR_MAX_FREQ_DEV / SAMPLERATE /* modulation index */)),
@@ -83,6 +85,8 @@ CDMRTX::CDMRTX() :
     std::copy(std::begin(EMPTY_SHORT_LC), std::end(EMPTY_SHORT_LC), std::begin(m_newShortLC));
     std::copy(std::begin(EMPTY_SHORT_LC), std::end(EMPTY_SHORT_LC), std::begin(m_shortLC));
 
+    m_lastDataSeen[0] = m_lastDataSeen[1] = std::chrono::steady_clock::now();
+
     m_abort[0U] = false;
     m_abort[1U] = false;
 
@@ -98,18 +102,30 @@ void CDMRTX::process()
     }
 
     if (m_poLen == 0U) {
-        //Wait for Data to process
+        //Wait for enough Data to process
+        std::chrono::steady_clock::time_point now;
         std::unique_lock<std::mutex> lock(m_DataAvailableMutex);
-        bool dataAvailable = false;
+        bool waitForData = true;
+        while (waitForData)
         {
-            std::unique_lock<std::mutex> fifoGuard1(m_fifoMutex[0], std::defer_lock);
-            std::unique_lock<std::mutex> fifoGuard2(m_fifoMutex[1], std::defer_lock);
-            std::lock(fifoGuard1, fifoGuard2);
-            dataAvailable = m_fifo[0U].size() >= DMR_FRAME_LENGTH_BYTES || m_fifo[0U].size() >= DMR_FRAME_LENGTH_BYTES;
-        }
-        if (!dataAvailable)
-        {
-            m_DataAvailableConditionVariable.wait(lock);
+            bool enoughData1, enoughData2;
+            {
+                std::unique_lock<std::mutex> fifoGuard1(m_fifoMutex[0], std::defer_lock);
+                std::unique_lock<std::mutex> fifoGuard2(m_fifoMutex[1], std::defer_lock);
+                std::lock(fifoGuard1, fifoGuard2);
+                enoughData1 = m_fifo[0U].size() >= DMR_FRAME_LENGTH_BYTES;
+                enoughData2 = m_fifo[1U].size() >= DMR_FRAME_LENGTH_BYTES;
+            }
+            now = std::chrono::steady_clock::now();
+            if ((enoughData1 || std::chrono::duration_cast<std::chrono::milliseconds>(now - m_lastDataSeen[0]).count() >= DATA_TIMEOUT)
+             && (enoughData2 || std::chrono::duration_cast<std::chrono::milliseconds>(now - m_lastDataSeen[1]).count() >= DATA_TIMEOUT))
+            {
+                waitForData = false;
+            }
+            else
+            {
+                m_DataAvailableConditionVariable.wait(lock);
+            }
         }
         
         sdr.setStreamState(true); // Turn on SDR if not already
@@ -168,8 +184,8 @@ uint8_t CDMRTX::writeData1(const uint8_t* data, uint8_t length)
         std::lock_guard<std::mutex> lock(m_fifoMutex[0]);
         for (uint8_t i = 0U; i < DMR_FRAME_LENGTH_BYTES; i++)
             m_fifo[0U].push(data[i + 1U]);
+        m_lastDataSeen[0] = std::chrono::steady_clock::now();
     }
-    //std::cout << "CDMRTX::writeData1(): m_fifo[0].size:" << std::to_string(m_fifo[0U].size()) << std::endl;
 
     if (m_state == DMRTXSTATE_IDLE)
     {
@@ -195,8 +211,8 @@ uint8_t CDMRTX::writeData2(const uint8_t* data, uint8_t length)
         std::lock_guard<std::mutex> lock(m_fifoMutex[1]);
         for (uint8_t i = 0U; i < DMR_FRAME_LENGTH_BYTES; i++)
             m_fifo[1U].push(data[i + 1U]);
+        m_lastDataSeen[1] = std::chrono::steady_clock::now();
     }
-    //std::cout << "CDMRTX::writeData2(): m_fifo[1].size:" << std::to_string(m_fifo[1U].size()) << std::endl;
 
     if (m_state == DMRTXSTATE_IDLE)
     {
@@ -250,7 +266,7 @@ void CDMRTX::setStart(bool start)
         return;
 
     m_state = start ? DMRTXSTATE_SLOT1 : DMRTXSTATE_IDLE;
-    std::cout << "CDMRTX::setStart() m_state" << std::to_string(m_state) << std::endl;
+    LOGCONSOLE("CDMRTX::setStart() m_state %d", m_state);
 
     m_frameCount = 0U;
     m_abortCount[0U] = 0U;
@@ -338,7 +354,6 @@ void CDMRTX::createData(uint8_t slotIndex)
             m_fifo[slotIndex].pop();
             m_markBuffer[i] = MARK_NONE;
         }
-        //std::cout << "CDMRTX::createData() m_fifo.size() " << std::to_string(m_fifo[slotIndex].size()) << std::endl;
     }
     else {
         m_abort[slotIndex] = false;
@@ -347,7 +362,6 @@ void CDMRTX::createData(uint8_t slotIndex)
             m_poBuffer[i] = m_idle[i];
             m_markBuffer[i] = MARK_NONE;
         }
-        //std::cout << "CDMRTX::createData(IDLE_MESSAGE) m_fifo.size() " << std::to_string(m_fifo[slotIndex].size()) << std::endl;
     }
 
     m_poLen = DMR_FRAME_LENGTH_BYTES;
@@ -408,7 +422,6 @@ void CDMRTX::createCACH(uint8_t txSlotIndex, uint8_t rxSlotIndex)
     }
 
     std::copy(m_shortLC + m_cachPtr, m_shortLC + m_cachPtr + 3U, m_poBuffer);
-    //::memcpy(m_poBuffer, m_shortLC + m_cachPtr, 3U);
     m_markBuffer[0U] = MARK_NONE;
     m_markBuffer[1U] = MARK_NONE;
     m_markBuffer[2U] = rxSlotIndex == 1U ? MARK_SLOT1 : MARK_SLOT2;
@@ -448,7 +461,6 @@ void CDMRTX::createCACH(uint8_t txSlotIndex, uint8_t rxSlotIndex)
 void CDMRTX::setColorCode(uint8_t colorCode)
 {
     std::copy(IDLE_DATA, IDLE_DATA + DMR_FRAME_LENGTH_BYTES, m_idle);
-    //::memcpy(m_idle, IDLE_DATA, DMR_FRAME_LENGTH_BYTES);
 
     CDMRSlotType slotType;
     slotType.encode(colorCode, DT_IDLE, m_idle);
