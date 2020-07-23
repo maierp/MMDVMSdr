@@ -158,6 +158,8 @@ uint8_t CSDR::setFrequency(const uint8_t* data, uint8_t length)
     LOGCONSOLE("SDR: Set RX frequency: %d", m_rxFrequency);
     LOGCONSOLE("SDR: Set TX frequency: %d", m_txFrequency);
     m_device->setFrequency(SOAPY_SDR_TX, 0, m_txFrequency);
-    m_device->setFrequency(SOAPY_SDR_RX, 0, m_rxFrequency);
+    Kwargs args;
+    args["OFFSET"] = "0.5e6";
+    m_device->setFrequency(SOAPY_SDR_RX, 0, m_rxFrequency, args);
     return 0U;
 }
