@@ -113,7 +113,7 @@ CSDR::CSDR() :
         m_device->setFrequency(SOAPY_SDR_TX, 0, 430262500);
         m_device->setFrequency(SOAPY_SDR_RX, 0, 430262500);
         m_device->setGain(SOAPY_SDR_TX, 0, 64);
-        m_device->setGain(SOAPY_SDR_RX, 0, 64);
+        m_device->setGain(SOAPY_SDR_RX, 0, 0);
         LOGCONSOLE("SDR: TXGain: %d", m_device->getGain(SOAPY_SDR_TX, 0));
         LOGCONSOLE("SDR: RXGain: %d", m_device->getGain(SOAPY_SDR_RX, 0));
         LOGCONSOLE("SDR: List TX antennas:");
