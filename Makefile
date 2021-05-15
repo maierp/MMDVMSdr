@@ -12,6 +12,9 @@ OBJECTS =	MMDVMSdr.o SerialPort.o IO.o DMRTX.o DMRSlotType.o SDR.o Debug.o
 
 all:		MMDVMSdr
 
+sdr_test:
+		$(CXX) test_mod_demod.cpp $(CFLAGS) $(LIBS) -o test_mod_demod
+
 MMDVMSdr:	GitVersion.h $(OBJECTS) 
 		$(CXX) $(OBJECTS) $(CFLAGS) $(LIBS) -o MMDVMSdr
 

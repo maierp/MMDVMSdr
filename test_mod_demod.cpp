@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <iterator>
 #include <iostream>
+#include <fstream>
 #include <chrono>
 
 #include <liquid/liquid.h>
@@ -18,17 +19,18 @@ const float DMR_SYMBOL_D = -1.0f;
 
 std::vector<int16_t> m_sampleBuffer(2 * 1020);
 
-freqmod fmod;
-freqdem fdem;
+freqmod m_fmod;
+freqdem m_fdem;
 firinterp_rrrf m_rrc_interp_filter_obj;
 
 void writeByte(uint8_t c);
 
-public void main() {
-    fmod = freqmod_create(DMR_MAX_FREQ_DEV / SAMPLERATE /* modulation index */);
-    fdem = freqdem_create(DMR_MAX_FREQ_DEV / SAMPLERATE /* modulation index */);
+int main() {
+    m_fmod = freqmod_create(DMR_MAX_FREQ_DEV / SAMPLERATE /* modulation index */);
+    m_fdem = freqdem_create(DMR_MAX_FREQ_DEV / SAMPLERATE /* modulation index */);
     m_rrc_interp_filter_obj = firinterp_rrrf_create_prototype(LIQUID_FIRFILT_RRC, 5, 4, 0.2, 0); // 4 Symbols with 5 interpolation samples each
     writeByte(0xCD);
+    return 0;
 }
 
 void writeByte(uint8_t c)
@@ -59,6 +61,9 @@ void writeByte(uint8_t c)
     // Interpolate each symbol to 5 samples each using square root raised cosine filter
     firinterp_rrrf_execute_block(m_rrc_interp_filter_obj, inBuffer, 4U, outBuffer);
 
+    std::ofstream myfile;
+    myfile.open("samples.dat");
+
     // Do the FM modulation and store the samples in m_sampleBuffer
     int index = 0;
     liquid_float_complex s;
@@ -68,8 +73,10 @@ void writeByte(uint8_t c)
         {
             freqmod_modulate(m_fmod, outBuffer[j], &s);
             m_sampleBuffer[index++] = TXFullScale * s.imag;
+	    myfile << (TXFullScale * s.imag) << std::endl;
             m_sampleBuffer[index++] = TXFullScale * s.real;
+	    myfile << (TXFullScale * s.real) << std::endl;
         }
     }
-
+    myfile.close();
 }
