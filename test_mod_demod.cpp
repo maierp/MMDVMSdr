@@ -24,12 +24,17 @@ freqdem m_fdem;
 firinterp_rrrf m_rrc_interp_filter_obj;
 
 void writeByte(uint8_t c);
+void readByte(uint8_t* c);
 
 int main() {
     m_fmod = freqmod_create(DMR_MAX_FREQ_DEV / SAMPLERATE /* modulation index */);
     m_fdem = freqdem_create(DMR_MAX_FREQ_DEV / SAMPLERATE /* modulation index */);
     m_rrc_interp_filter_obj = firinterp_rrrf_create_prototype(LIQUID_FIRFILT_RRC, 5, 4, 0.2, 0); // 4 Symbols with 5 interpolation samples each
     writeByte(0xCD);
+    uint8_t c;
+    readByte(&c);
+    printf("%X", c);
+
     return 0;
 }
 
@@ -73,9 +78,28 @@ void writeByte(uint8_t c)
         {
             freqmod_modulate(m_fmod, outBuffer[j], &s);
             m_sampleBuffer[index++] = TXFullScale * s.imag;
-	    myfile << (TXFullScale * s.imag) << std::endl;
+            myfile << (TXFullScale * s.imag) << std::endl;
             m_sampleBuffer[index++] = TXFullScale * s.real;
-	    myfile << (TXFullScale * s.real) << std::endl;
+            myfile << (TXFullScale * s.real) << std::endl;
+        }
+    }
+    myfile.close();
+}
+
+void readByte(uint8_t* c) {
+    int index = 0;
+    float complex s;
+    float outBuffer[51*4* DMR_RADIO_SYMBOL_LENGTH];
+    std::ofstream myfile;
+    myfile.open("demod.dat");
+    for (unsigned int j = 0; j < 4 * DMR_RADIO_SYMBOL_LENGTH; j++) //4 Symbols with 5 Samples each
+    {
+        for (int i = 0; i < 51; i++)
+        {
+            s.imag = m_sampleBuffer[index++] / TXFullScale;
+            s.real = m_sampleBuffer[index++] / TXFullScale;
+            freqdem_demodulate(m_dem, s, &outBuffer[j*51 + i]);
+            myfile << outBuffer[j * 51 + i] << std::endl;
         }
     }
     myfile.close();
