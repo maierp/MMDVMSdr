@@ -14,6 +14,7 @@ all:		MMDVMSdr
 
 sdr_test:
 		$(CXX) test_mod_demod.cpp $(CFLAGS) $(LIBS) -o test_mod_demod
+		$(CXX) test_sync.cpp $(CFLAGS) $(LIBS) -o test_sync
 
 MMDVMSdr:	GitVersion.h $(OBJECTS) 
 		$(CXX) $(OBJECTS) $(CFLAGS) $(LIBS) -o MMDVMSdr
