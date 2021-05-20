@@ -5,12 +5,19 @@
 #include <chrono>
 #include <sys/time.h>
 #include <cstdarg>
-
-#include <liquid/liquid.h>
+#include <SoapySDR/Version.hpp>
+#include <SoapySDR/Modules.hpp>
+#include <SoapySDR/Registry.hpp>
+#include <SoapySDR/Device.hpp>
+#include <SoapySDR/Formats.hpp>
+#include <SoapySDR/Logger.hpp>
 #include <queue>
+#include <vector>
+#include <liquid/liquid.h>
+#include <complex.h>
 
 const float DMR_MAX_FREQ_DEV = 1944; // 1.944 kHz | 648 Hz | -648 Hz | -1.944 kHz
-const double SAMPLERATE = 5 * 4800; //4800 symbols/s with 5 samples/symbol
+const double SAMPLERATE = 255 * 4800; //4800 symbols/s with 5 samples/symbol
 
 const unsigned int DMR_RADIO_SYMBOL_LENGTH = 5U;
 
@@ -19,7 +26,7 @@ const float DMR_SYMBOL_B = 1.0f / 3.0f;
 const float DMR_SYMBOL_C = -1.0f / 3.0f;
 const float DMR_SYMBOL_D = -1.0f;
 
-std::vector<int16_t> m_sampleBuffer(2 * 1020);
+std::vector<int16_t> m_sampleBuffer(2 * 20*51);
 
 freqmod m_fmod;
 freqdem m_fdem;
@@ -32,21 +39,29 @@ int               m_numElems;
 std::string       m_RXformat;
 double            m_RXfullScale;
 uint32_t          m_rxFrequency;
-std::vector<std::vector<int16_t>> m_RXBuffMem;
-std::vector<void*> m_RXBuffs(m_numChans, std::vector<int16_t>(2 * 1020));
-
+std::vector<std::vector<int16_t>> m_RXBuffMem(m_numChans, std::vector<int16_t>(2 * 20*51));
+std::vector<void*> m_RXBuffs(m_numChans);
+std::ofstream myfile;
 
 void writeByte(uint8_t c);
 void readByte(uint8_t* c);
 void sdrInit();
 void read(); // 4 symbols with 5 samples each = 20 samples
 void LOGCONSOLE(const char* msg, ...);
+void enableDisableStream(bool state);
 
 int main() {
     sdrInit();
     m_fdem = freqdem_create(DMR_MAX_FREQ_DEV / SAMPLERATE /* modulation index */);
-    read();
-
+    myfile.open("dmrrecording.dat");
+    std::cout << "######### START #########" << std::endl;
+    for (int i = 0; i <= 5*1200; i++) {
+        read();
+    }
+    std::cout << "######### END #########" << std::endl;
+    myfile.close();
+    enableDisableStream(false);
+    SoapySDR::Device::unmake(m_device);
     return 0;
 }
 
@@ -61,71 +76,9 @@ void LOGCONSOLE(const char* msg, ...) {
     printf("\n");
 }
 
-void writeByte(uint8_t c)
+static void SoapyPocoLogHandler(const SoapySDR::LogLevel logLevel, const char* message)
 {
-    double TXFullScale = 255;
-    float inBuffer[4U];
-    float outBuffer[DMR_RADIO_SYMBOL_LENGTH * 4U];
-
-    // Extract 4 symbols from each byte
-    const uint8_t MASK = 0xC0U;
-    for (uint8_t i = 0U; i < 4U; i++, c <<= 2) {
-        switch (c & MASK) {
-        case 0xC0U:
-            inBuffer[i] = DMR_SYMBOL_A;
-            break;
-        case 0x80U:
-            inBuffer[i] = DMR_SYMBOL_B;
-            break;
-        case 0x00U:
-            inBuffer[i] = DMR_SYMBOL_C;
-            break;
-        default:
-            inBuffer[i] = DMR_SYMBOL_D;
-            break;
-        }
-    }
-
-    // Interpolate each symbol to 5 samples each using square root raised cosine filter
-    firinterp_rrrf_execute_block(m_rrc_interp_filter_obj, inBuffer, 4U, outBuffer);
-
-    std::ofstream myfile;
-    myfile.open("samples.dat");
-
-    // Do the FM modulation and store the samples in m_sampleBuffer
-    int index = 0;
-    liquid_float_complex s;
-    for (unsigned int j = 0; j < 4 * DMR_RADIO_SYMBOL_LENGTH; j++) //4 Symbols with 5 Samples each
-    {
-        for (int i = 0; i < 51; i++)
-        {
-            freqmod_modulate(m_fmod, outBuffer[j], &s);
-            m_sampleBuffer[index++] = TXFullScale * s.imag;
-            myfile << (TXFullScale * s.imag) << std::endl;
-            m_sampleBuffer[index++] = TXFullScale * s.real;
-            myfile << (TXFullScale * s.real) << std::endl;
-        }
-    }
-    myfile.close();
-}
-
-void readByte(uint8_t* c) {
-    int index = 0;
-    float complex s;
-    float outBuffer[51*4* DMR_RADIO_SYMBOL_LENGTH];
-    std::ofstream myfile;
-    myfile.open("demod.dat");
-    for (unsigned int j = 0; j < 4 * DMR_RADIO_SYMBOL_LENGTH; j++) //4 Symbols with 5 Samples each
-    {
-        for (int i = 0; i < 51; i++)
-        {
-            s.imag = m_sampleBuffer[index++] / TXFullScale;
-            s.real = m_sampleBuffer[index++] / TXFullScale;
-            freqdem_demodulate(m_dem, s, &outBuffer[j*51 + i]);
-            myfile << outBuffer[j * 51 + i] << std::endl;
-        }
-    }
-    myfile.close();
+    LOGCONSOLE(message);
 }
 
 void sdrInit() {
@@ -133,21 +86,11 @@ void sdrInit() {
     {
         SoapySDR::registerLogHandler(&SoapyPocoLogHandler);
         m_device = SoapySDR::Device::make("driver=lime");
-        //m_device->setSampleRate(SOAPY_SDR_TX, 0, m_samplerate);
         m_device->setSampleRate(SOAPY_SDR_RX, 0, SAMPLERATE);
-        //m_device->setFrequency(SOAPY_SDR_TX, 0, 430262500);
         m_device->setFrequency(SOAPY_SDR_RX, 0, 431137500);
-        //m_device->setGain(SOAPY_SDR_TX, 0, 64);
-        m_device->setGain(SOAPY_SDR_RX, 0, 0);
-        //LOGCONSOLE("SDR: TXGain: %d", m_device->getGain(SOAPY_SDR_TX, 0));
+        m_device->setGainMode(SOAPY_SDR_RX, 0, false);
+        m_device->setGain(SOAPY_SDR_RX, 0, 32);
         LOGCONSOLE("SDR: RXGain: %d", m_device->getGain(SOAPY_SDR_RX, 0));
-        //LOGCONSOLE("SDR: List TX antennas:");
-        //const auto antennasTX = m_device->listAntennas(SOAPY_SDR_TX, 0);
-        //for (const auto& antenna : antennasTX)
-        //{
-        //    LOGCONSOLE("SDR:    %s", antenna.c_str());
-        //}
-        //LOGCONSOLE("SDR: Selected TX antenna: %s", m_device->getAntenna(SOAPY_SDR_TX, 0).c_str());
 
         LOGCONSOLE("SDR: List RX antennas:");
         const auto antennasRX = m_device->listAntennas(SOAPY_SDR_RX, 0);
@@ -157,34 +100,51 @@ void sdrInit() {
         }
         LOGCONSOLE("SDR: Selected RX antenna: %s", m_device->getAntenna(SOAPY_SDR_RX, 0).c_str());
 
-        //m_TXformat = m_device->getNativeStreamFormat(SOAPY_SDR_TX, 0, m_TXfullScale);
         m_RXformat = m_device->getNativeStreamFormat(SOAPY_SDR_RX, 0, m_RXfullScale);
-        //m_TXstream = m_device->setupStream(SOAPY_SDR_TX, m_TXformat);
         m_RXstream = m_device->setupStream(SOAPY_SDR_RX, m_RXformat);
-        //LOGCONSOLE("SDR: TX Format: %s FullScale: %f", m_TXformat.c_str(), m_TXfullScale);
         LOGCONSOLE("SDR: RX Format: %s FullScale: %f", m_RXformat.c_str(), m_RXfullScale);
 
-        LOGCONSOLE("SDR: Enable Modem");
-        m_RXstream = m_device->setupStream(SOAPY_SDR_RX, m_RXformat);
-        m_device->activateStream(m_RXstream);
+        enableDisableStream(false);
+        enableDisableStream(true);
+
         m_numElems = m_device->getStreamMTU(m_RXstream); // Number of IQ pairs
         LOGCONSOLE("SDR: NumElements: %d", m_numElems);
 
     }
     catch (const std::exception& ex)
     {
-        //std::cerr << "Error in rate test: " << ex.what() << std::endl;
         SoapySDR::Device::unmake(m_device);
     }
 
-}void read()
+}
+
+void enableDisableStream(bool state) {
+    if (state) {
+        LOGCONSOLE("SDR: Enable Modem");
+        m_RXstream = m_device->setupStream(SOAPY_SDR_RX, m_RXformat);
+        m_device->activateStream(m_RXstream);
+    } else {
+        LOGCONSOLE("SDR: Disable Modem");
+        m_device->deactivateStream(m_RXstream);
+        m_device->closeStream(m_RXstream);
+    }
+}
+
+void read()
 {
+    for (int i = 0; i < m_numChans; i++) m_RXBuffs[i] = m_RXBuffMem[i].data();
     int flags(0);
     long long timeNs(0);
-    m_device->readStream(m_RXstream, m_RXBuffs.data(), 20, flags, timeNs);
-    std::cout << "Data: ";
-    for (int i = 0; i < 20; i++) {
-        std::cout << m_RXBuffs[0][i] << " ";
+    liquid_float_complex s;
+    int index = 0;
+    float outBuffer[20*51];
+    m_device->readStream(m_RXstream, m_RXBuffs.data(), 20*51, flags, timeNs);
+    for (int j = 0; j < 20; j++) {
+        for (int i = 0; i < 51; i++) {
+            s.imag(m_RXBuffMem[0][index++] / m_RXfullScale);
+            s.real(m_RXBuffMem[0][index++] / m_RXfullScale);
+            freqdem_demodulate(m_fdem, s, &outBuffer[j*51 + i]);
+        }
+        myfile << outBuffer[j*51] << std::endl;
     }
-    std::cout << std::endl;
 }
