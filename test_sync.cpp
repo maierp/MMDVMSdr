@@ -143,8 +143,8 @@ void read()
         for (int i = 0; i < 51; i++) {
             s.imag(m_RXBuffMem[0][index++] / m_RXfullScale);
             s.real(m_RXBuffMem[0][index++] / m_RXfullScale);
-            freqdem_demodulate(m_fdem, s, &outBuffer[j*51 + i]);
+            freqdem_demodulate(m_fdem, s, &outBuffer[j]);
         }
-        myfile << outBuffer[j*51] << std::endl;
+        myfile << outBuffer[j] << std::endl;
     }
 }
