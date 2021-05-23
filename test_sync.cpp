@@ -13,6 +13,7 @@
 #include <SoapySDR/Logger.hpp>
 #include <queue>
 #include <vector>
+#include <unistd.h>
 #include <liquid/liquid.h>
 #include <complex.h>
 
@@ -26,7 +27,8 @@ const float DMR_SYMBOL_B = 1.0f / 3.0f;
 const float DMR_SYMBOL_C = -1.0f / 3.0f;
 const float DMR_SYMBOL_D = -1.0f;
 
-std::vector<int16_t> m_sampleBuffer(2 * 20*51);
+std::vector<float> m_sampleBuffer(2 * 20*51 * 1200+1);
+int bufIndex = 0;
 
 freqmod m_fmod;
 freqdem m_fdem;
@@ -46,7 +48,7 @@ std::ofstream myfile;
 void writeByte(uint8_t c);
 void readByte(uint8_t* c);
 void sdrInit();
-void read(); // 4 symbols with 5 samples each = 20 samples
+bool read(bool); // 4 symbols with 5 samples each = 20 samples
 void LOGCONSOLE(const char* msg, ...);
 void enableDisableStream(bool state);
 
@@ -55,13 +57,32 @@ int main() {
     m_fdem = freqdem_create(DMR_MAX_FREQ_DEV / SAMPLERATE /* modulation index */);
     myfile.open("dmrrecording.dat");
     std::cout << "######### START #########" << std::endl;
-    for (int i = 0; i <= 5*1200; i++) {
-        read();
+    for (int i = 0; i < 6000; i++) {
+        read(false);
+        bufIndex = 0;
+	if (i%1000 == 0) {
+	    std::cout << (6000-i)/1000 << std::endl;
+        }
+    }
+    bufIndex = 0;
+    std::cout << "######### SIGNAL #########" << std::endl;
+    for (int i = 0; i < 1200-1; i++) {
+        read(true);
     }
     std::cout << "######### END #########" << std::endl;
     myfile.close();
     enableDisableStream(false);
     SoapySDR::Device::unmake(m_device);
+    //std::ofstream mySampleFile;
+    //mySampleFile.open("dmrcomplexsamples.dat");
+    std::ofstream mySampleBinFile;
+    mySampleBinFile.open("dmrbinsamples.dat", std::ios::binary);
+    for (int i = 0; i < 1200 * 20*51; i++) {
+    //    mySampleFile << m_sampleBuffer[i] << std::endl;
+        mySampleBinFile.write(reinterpret_cast<char *>(&m_sampleBuffer[i]), sizeof(float));
+    }
+    //mySampleFile.close();
+    mySampleBinFile.close();
     return 0;
 }
 
@@ -87,7 +108,7 @@ void sdrInit() {
         SoapySDR::registerLogHandler(&SoapyPocoLogHandler);
         m_device = SoapySDR::Device::make("driver=lime");
         m_device->setSampleRate(SOAPY_SDR_RX, 0, SAMPLERATE);
-        m_device->setFrequency(SOAPY_SDR_RX, 0, 431137500);
+        m_device->setFrequency(SOAPY_SDR_RX, 0, 431137300);
         m_device->setGainMode(SOAPY_SDR_RX, 0, false);
         m_device->setGain(SOAPY_SDR_RX, 0, 32);
         LOGCONSOLE("SDR: RXGain: %d", m_device->getGain(SOAPY_SDR_RX, 0));
@@ -130,7 +151,7 @@ void enableDisableStream(bool state) {
     }
 }
 
-void read()
+bool read(bool record)
 {
     for (int i = 0; i < m_numChans; i++) m_RXBuffs[i] = m_RXBuffMem[i].data();
     int flags(0);
@@ -138,13 +159,28 @@ void read()
     liquid_float_complex s;
     int index = 0;
     float outBuffer[20*51];
+    bool signalDetected = false;
     m_device->readStream(m_RXstream, m_RXBuffs.data(), 20*51, flags, timeNs);
     for (int j = 0; j < 20; j++) {
         for (int i = 0; i < 51; i++) {
-            s.imag(m_RXBuffMem[0][index++] / m_RXfullScale);
+            m_sampleBuffer[bufIndex++] = m_RXBuffMem[0][index] / m_RXfullScale;
+            signalDetected |= m_sampleBuffer[bufIndex] >= 0.015;
             s.real(m_RXBuffMem[0][index++] / m_RXfullScale);
+
+            m_sampleBuffer[bufIndex++] = m_RXBuffMem[0][index] / m_RXfullScale;
+            signalDetected |= m_sampleBuffer[bufIndex] >= 0.015;
+            s.imag(m_RXBuffMem[0][index++] / m_RXfullScale);
+
             freqdem_demodulate(m_fdem, s, &outBuffer[j]);
+//	    if (signalDetected || record) {
+//	         //std::cout << s << std::endl;
+//	         myfile << outBuffer[j] << std::endl;
+//	    }
         }
-        myfile << outBuffer[j] << std::endl;
+        if (signalDetected || record) {
+            //std::cout << s << std::endl;
+            myfile << outBuffer[j] << std::endl;
+        }
     }
+    return signalDetected;
 }
