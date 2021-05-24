@@ -55,7 +55,7 @@ void enableDisableStream(bool state);
 int main() {
     sdrInit();
     m_fdem = freqdem_create(DMR_MAX_FREQ_DEV / SAMPLERATE /* modulation index */);
-    myfile.open("dmrrecording.dat");
+    myfile.open("dmrrecording.dat", std::ios::binary);
     std::cout << "######### START #########" << std::endl;
     for (int i = 0; i < 6000; i++) {
         read(false);
@@ -172,6 +172,9 @@ bool read(bool record)
             s.imag(m_RXBuffMem[0][index++] / m_RXfullScale);
 
             freqdem_demodulate(m_fdem, s, &outBuffer[j]);
+	    if (signalDetected || record) {
+	        myfile.write(reinterpret_cast<char *>(&outBuffer[j]), sizeof(float));
+            }
 //	    if (signalDetected || record) {
 //	         //std::cout << s << std::endl;
 //	         myfile << outBuffer[j] << std::endl;
@@ -179,7 +182,8 @@ bool read(bool record)
         }
         if (signalDetected || record) {
             //std::cout << s << std::endl;
-            myfile << outBuffer[j] << std::endl;
+	    //myfile.write(reinterpret_cast<char *>(&outBuffer[j]), sizeof(float));
+            //myfile << outBuffer[j] << std::endl;
         }
     }
     return signalDetected;
