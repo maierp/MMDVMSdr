@@ -38,7 +38,7 @@ firinterp_rrrf m_rrc_interp_filter_obj;
 unsigned int h_len;
 float* h;
 float As = 60.0f;         // stop-band attenuation [dB]
-firfilt_rrrf = m_low_pass_filter_obj;
+firfilt_rrrf m_low_pass_filter_obj;
 
 
 SoapySDR::Device* m_device;
@@ -65,9 +65,9 @@ int main() {
     m_fdem = freqdem_create(DMR_MAX_FREQ_DEV / SAMPLERATE /* modulation index */);
 
     // Low-Pass Filter
-    h_len = estimate_req_filter_len(15000.0 / SAMPLERATE, As);
+    h_len = estimate_req_filter_len(15000.0*2.0 / SAMPLERATE, As);
     h = new float[h_len];
-    liquid_firdes_kaiser(h_len, 15000.0 / SAMPLERATE, As, 0 /*mu*/, h);
+    liquid_firdes_kaiser(h_len, 15000.0*2.0 / SAMPLERATE, As, 0 /*mu*/, h);
     m_low_pass_filter_obj = firfilt_rrrf_create(h, h_len);
 
     myfile.open("dmrrecording.dat", std::ios::binary);
@@ -189,14 +189,17 @@ bool read(bool record)
 
             freqdem_demodulate(m_fdem, s, &outBuffer[j*51+i]);
             firfilt_rrrf_push(m_low_pass_filter_obj, outBuffer[j * 51 + i]);    // push input sample
-            firfilt_crcf_execute(m_low_pass_filter_obj, &outBufferFiltered[j * 51 + i]); // compute output
+            firfilt_rrrf_execute(m_low_pass_filter_obj, &outBufferFiltered[j * 51 + i]); // compute output
             if (signalDetected || record) {
-                myfile.write(reinterpret_cast<char *>(&outBufferFiltered[j * 51 + i]), sizeof(float));
+           //     myfile.write(reinterpret_cast<char *>(&outBufferFiltered[j * 51 + i]), sizeof(float));
             }
         }
+        if (signalDetected || record) {
+            myfile.write(reinterpret_cast<char *>(&outBufferFiltered[j * 51]), sizeof(float));
+        }
     }
-    //if (signalDetected || record) {
-
-    //}
+    if (signalDetected || record) {
+        //myfile.write(reinterpret_cast<char *>(&outBufferFiltered[j * 51]), sizeof(float));
+    }
     return signalDetected;
 }
