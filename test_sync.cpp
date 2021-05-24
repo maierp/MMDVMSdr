@@ -34,6 +34,13 @@ freqmod m_fmod;
 freqdem m_fdem;
 firinterp_rrrf m_rrc_interp_filter_obj;
 
+// Low-Pass Filter
+unsigned int h_len;
+float* h;
+float As = 60.0f;         // stop-band attenuation [dB]
+firfilt_rrrf = m_low_pass_filter_obj;
+
+
 SoapySDR::Device* m_device;
 SoapySDR::Stream* m_RXstream;
 int               m_numChans(2);
@@ -54,7 +61,15 @@ void enableDisableStream(bool state);
 
 int main() {
     sdrInit();
+
     m_fdem = freqdem_create(DMR_MAX_FREQ_DEV / SAMPLERATE /* modulation index */);
+
+    // Low-Pass Filter
+    h_len = estimate_req_filter_len(15000.0 / SAMPLERATE, As);
+    h = new float[h_len];
+    liquid_firdes_kaiser(h_len, 15000.0 / SAMPLERATE, As, 0 /*mu*/, h);
+    m_low_pass_filter_obj = firfilt_rrrf_create(h, h_len);
+
     myfile.open("dmrrecording.dat", std::ios::binary);
     std::cout << "######### START #########" << std::endl;
     for (int i = 0; i < 6000; i++) {
@@ -159,6 +174,7 @@ bool read(bool record)
     liquid_float_complex s;
     int index = 0;
     float outBuffer[20*51];
+    float outBufferFiltered[20 * 51];
     bool signalDetected = false;
     m_device->readStream(m_RXstream, m_RXBuffs.data(), 20*51, flags, timeNs);
     for (int j = 0; j < 20; j++) {
@@ -171,20 +187,16 @@ bool read(bool record)
             signalDetected |= m_sampleBuffer[bufIndex] >= 0.015;
             s.imag(m_RXBuffMem[0][index++] / m_RXfullScale);
 
-            freqdem_demodulate(m_fdem, s, &outBuffer[j]);
-	    if (signalDetected || record) {
-	        myfile.write(reinterpret_cast<char *>(&outBuffer[j]), sizeof(float));
+            freqdem_demodulate(m_fdem, s, &outBuffer[j*51+i]);
+            firfilt_rrrf_push(m_low_pass_filter_obj, outBuffer[j * 51 + i]);    // push input sample
+            firfilt_crcf_execute(m_low_pass_filter_obj, &outBufferFiltered[j * 51 + i]); // compute output
+            if (signalDetected || record) {
+                myfile.write(reinterpret_cast<char *>(&outBufferFiltered[j * 51 + i]), sizeof(float));
             }
-//	    if (signalDetected || record) {
-//	         //std::cout << s << std::endl;
-//	         myfile << outBuffer[j] << std::endl;
-//	    }
-        }
-        if (signalDetected || record) {
-            //std::cout << s << std::endl;
-	    //myfile.write(reinterpret_cast<char *>(&outBuffer[j]), sizeof(float));
-            //myfile << outBuffer[j] << std::endl;
         }
     }
+    //if (signalDetected || record) {
+
+    //}
     return signalDetected;
 }
