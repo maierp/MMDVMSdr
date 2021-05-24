@@ -39,6 +39,7 @@ unsigned int h_len;
 float* h;
 float As = 60.0f;         // stop-band attenuation [dB]
 firfilt_rrrf m_low_pass_filter_obj;
+firfilt_rrrf m_rrc_filt_filter_obj;
 
 
 SoapySDR::Device* m_device;
@@ -69,6 +70,10 @@ int main() {
     h = new float[h_len];
     liquid_firdes_kaiser(h_len, 15000.0*2.0 / SAMPLERATE, As, 0 /*mu*/, h);
     m_low_pass_filter_obj = firfilt_rrrf_create(h, h_len);
+
+    // RRC Filter
+    m_rrc_filt_filter_obj = firfilt_rrrf_create_rnyquist(LIQUID_FIRFILT_RRC, 1, 4, 0.2, 0); // 4 Symbols with 5 interpolation samples each
+
 
     myfile.open("dmrrecording.dat", std::ios::binary);
     std::cout << "######### START #########" << std::endl;
@@ -174,7 +179,8 @@ bool read(bool record)
     liquid_float_complex s;
     int index = 0;
     float outBuffer[20*51];
-    float outBufferFiltered[20 * 51];
+    float outBufferFiltered[20];
+    float outBufferRRC[20];
     bool signalDetected = false;
     m_device->readStream(m_RXstream, m_RXBuffs.data(), 20*51, flags, timeNs);
     for (int j = 0; j < 20; j++) {
@@ -189,15 +195,18 @@ bool read(bool record)
 
             freqdem_demodulate(m_fdem, s, &outBuffer[j*51+i]);
             firfilt_rrrf_push(m_low_pass_filter_obj, outBuffer[j * 51 + i]);    // push input sample
-            firfilt_rrrf_execute(m_low_pass_filter_obj, &outBufferFiltered[j * 51 + i]); // compute output
+            firfilt_rrrf_execute(m_low_pass_filter_obj, &outBufferFiltered[j]); // compute output
             if (signalDetected || record) {
            //     myfile.write(reinterpret_cast<char *>(&outBufferFiltered[j * 51 + i]), sizeof(float));
             }
         }
         if (signalDetected || record) {
-            myfile.write(reinterpret_cast<char *>(&outBufferFiltered[j * 51]), sizeof(float));
+            myfile.write(reinterpret_cast<char *>(&outBufferFiltered[j]), sizeof(float));
         }
     }
+
+    firfilt_rrrf_execute_block(m_rrc_filt_filter_obj, outBufferFiltered, 20, outBufferRRC);
+
     if (signalDetected || record) {
         //myfile.write(reinterpret_cast<char *>(&outBufferFiltered[j * 51]), sizeof(float));
     }
