@@ -72,7 +72,7 @@ int main() {
     m_low_pass_filter_obj = firfilt_rrrf_create(h, h_len);
 
     // RRC Filter
-    m_rrc_filt_filter_obj = firfilt_rrrf_create_rnyquist(LIQUID_FIRFILT_RRC, 1, 4, 0.2, 0); // 4 Symbols with 5 interpolation samples each
+    m_rrc_filt_filter_obj = firfilt_rrrf_create_rnyquist(LIQUID_FIRFILT_RRC, 5, 4, 0.2, 0); // 4 Symbols with 5 interpolation samples each
 
 
     myfile.open("dmrrecording.dat", std::ios::binary);
@@ -200,15 +200,17 @@ bool read(bool record)
            //     myfile.write(reinterpret_cast<char *>(&outBufferFiltered[j * 51 + i]), sizeof(float));
             }
         }
-        if (signalDetected || record) {
-            myfile.write(reinterpret_cast<char *>(&outBufferFiltered[j]), sizeof(float));
-        }
+        //if (signalDetected || record) {
+        //    myfile.write(reinterpret_cast<char *>(&outBufferFiltered[j]), sizeof(float));
+        //}
     }
 
     firfilt_rrrf_execute_block(m_rrc_filt_filter_obj, outBufferFiltered, 20, outBufferRRC);
 
     if (signalDetected || record) {
-        //myfile.write(reinterpret_cast<char *>(&outBufferFiltered[j * 51]), sizeof(float));
+        for (int j = 0; j < 20; j++) {
+	    myfile.write(reinterpret_cast<char *>(&outBufferRRC[j]), sizeof(float));
+	}
     }
     return signalDetected;
 }
