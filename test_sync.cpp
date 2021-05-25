@@ -21,14 +21,31 @@ const float DMR_MAX_FREQ_DEV = 1944; // 1.944 kHz | 648 Hz | -648 Hz | -1.944 kH
 const double SAMPLERATE = 255 * 4800; //4800 symbols/s with 5 samples/symbol
 
 const unsigned int DMR_RADIO_SYMBOL_LENGTH = 5U;
+const unsigned int DMR_FRAME_LENGTH_BYTES = 33U;
+const unsigned int DMR_FRAME_LENGTH_BITS = DMR_FRAME_LENGTH_BYTES * 8U;
+const unsigned int DMR_FRAME_LENGTH_SYMBOLS = DMR_FRAME_LENGTH_BYTES * 4U;
+const unsigned int DMR_FRAME_LENGTH_SAMPLES = DMR_FRAME_LENGTH_SYMBOLS * DMR_RADIO_SYMBOL_LENGTH;
+
+const unsigned int DMR_SYNC_LENGTH_BYTES = 6U;
+const unsigned int DMR_SYNC_LENGTH_BITS = DMR_SYNC_LENGTH_BYTES * 8U;
+const unsigned int DMR_SYNC_LENGTH_SYMBOLS = DMR_SYNC_LENGTH_BYTES * 4U;
+const unsigned int DMR_SYNC_LENGTH_SAMPLES = DMR_SYNC_LENGTH_SYMBOLS * DMR_RADIO_SYMBOL_LENGTH;
+
+const uint64_t DMR_MS_DATA_SYNC_BITS = 0x0000D5D7F77FD757U;
+const uint64_t DMR_MS_VOICE_SYNC_BITS = 0x00007F7D5DD57DFDU;
+const uint64_t DMR_SYNC_BITS_MASK = 0x0000FFFFFFFFFFFFU;
+
+const uint32_t DMR_MS_DATA_SYNC_SYMBOLS = 0x0089D791U;
+const uint32_t DMR_MS_VOICE_SYNC_SYMBOLS = 0x0076286EU;
+const uint32_t DMR_SYNC_SYMBOLS_MASK = 0x00FFFFFFU;
+
+const uint8_t MAX_SYNC_SYMBOLS_ERRS = 2U;
+const uint8_t MAX_SYNC_BYTES_ERRS = 3U;
 
 const float DMR_SYMBOL_A = 1.0f;
 const float DMR_SYMBOL_B = 1.0f / 3.0f;
 const float DMR_SYMBOL_C = -1.0f / 3.0f;
 const float DMR_SYMBOL_D = -1.0f;
-
-std::vector<float> m_sampleBuffer(2 * 20*51 * 1200+1);
-int bufIndex = 0;
 
 freqmod m_fmod;
 freqdem m_fdem;
@@ -53,10 +70,16 @@ std::vector<std::vector<int16_t>> m_RXBuffMem(m_numChans, std::vector<int16_t>(2
 std::vector<void*> m_RXBuffs(m_numChans);
 std::ofstream myfile;
 
+uint32_t m_bitBuffer[DMR_RADIO_SYMBOL_LENGTH];
+uint16_t m_bitPtr = 0;
+uint16_t m_dataPtr;
+float    m_buffer[DMR_FRAME_LENGTH_SAMPLES];
+
 void writeByte(uint8_t c);
 void readByte(uint8_t* c);
 void sdrInit();
-bool read(bool); // 4 symbols with 5 samples each = 20 samples
+void readSamples(float* outBufferRRC); // 4 symbols with 5 samples each = 20 samples
+bool processSample(float sample);
 void LOGCONSOLE(const char* msg, ...);
 void enableDisableStream(bool state);
 
@@ -74,35 +97,51 @@ int main() {
     // RRC Filter
     m_rrc_filt_filter_obj = firfilt_rrrf_create_rnyquist(LIQUID_FIRFILT_RRC, 5, 4, 0.2, 0); // 4 Symbols with 5 interpolation samples each
 
+    // find sync
+    m_dataPtr = 0;
+    m_bitPtr = 0;
 
-    myfile.open("dmrrecording.dat", std::ios::binary);
+    //myfile.open("dmrrecording.dat", std::ios::binary);
     std::cout << "######### START #########" << std::endl;
-    for (int i = 0; i < 6000; i++) {
-        read(false);
-        bufIndex = 0;
-	if (i%1000 == 0) {
-	    std::cout << (6000-i)/1000 << std::endl;
+    float sampleBuffer[4 * DMR_RADIO_SYMBOL_LENGTH];
+    bool foundSync = false;
+    for (int i = 0; i < 6000 && !foundSync; i++)
+    {
+        readSamples(&sampleBuffer);
+        for (int j = 0; j < 4 * DMR_RADIO_SYMBOL_LENGTH && !foundSync; j++)
+        {
+            foundSync = processSample(sampleBuffer[j]);
         }
     }
-    bufIndex = 0;
-    std::cout << "######### SIGNAL #########" << std::endl;
-    for (int i = 0; i < 1200-1; i++) {
-        read(true);
-    }
+ //   for (int i = 0; i < 6000; i++) {
+ //       readSamples(&sampleBuffer);
+ //       for (int j = 0; j < 4 * DMR_RADIO_SYMBOL_LENGTH; j++) {
+ //           processSample(sampleBuffer[j]);
+ //       }
+ //       bufIndex = 0;
+	//if (i%1000 == 0) {
+	//    std::cout << (6000-i)/1000 << std::endl;
+ //       }
+ //   }
+ //   bufIndex = 0;
+ //   std::cout << "######### SIGNAL #########" << std::endl;
+ //   for (int i = 0; i < 1200-1; i++) {
+ //       read(true);
+ //   }
     std::cout << "######### END #########" << std::endl;
-    myfile.close();
+    //myfile.close();
     enableDisableStream(false);
     SoapySDR::Device::unmake(m_device);
-    //std::ofstream mySampleFile;
-    //mySampleFile.open("dmrcomplexsamples.dat");
-    std::ofstream mySampleBinFile;
-    mySampleBinFile.open("dmrbinsamples.dat", std::ios::binary);
-    for (int i = 0; i < 1200 * 20*51; i++) {
-    //    mySampleFile << m_sampleBuffer[i] << std::endl;
-        mySampleBinFile.write(reinterpret_cast<char *>(&m_sampleBuffer[i]), sizeof(float));
-    }
-    //mySampleFile.close();
-    mySampleBinFile.close();
+    ////std::ofstream mySampleFile;
+    ////mySampleFile.open("dmrcomplexsamples.dat");
+    //std::ofstream mySampleBinFile;
+    //mySampleBinFile.open("dmrbinsamples.dat", std::ios::binary);
+    //for (int i = 0; i < 1200 * 20*51; i++) {
+    ////    mySampleFile << m_sampleBuffer[i] << std::endl;
+    //    mySampleBinFile.write(reinterpret_cast<char *>(&m_sampleBuffer[i]), sizeof(float));
+    //}
+    ////mySampleFile.close();
+    //mySampleBinFile.close();
     return 0;
 }
 
@@ -171,7 +210,7 @@ void enableDisableStream(bool state) {
     }
 }
 
-bool read(bool record)
+void readSamples(float* outBufferRRC)
 {
     for (int i = 0; i < m_numChans; i++) m_RXBuffs[i] = m_RXBuffMem[i].data();
     int flags(0);
@@ -180,37 +219,133 @@ bool read(bool record)
     int index = 0;
     float outBuffer[20*51];
     float outBufferFiltered[20];
-    float outBufferRRC[20];
-    bool signalDetected = false;
+    //float outBufferRRC[20];
     m_device->readStream(m_RXstream, m_RXBuffs.data(), 20*51, flags, timeNs);
     for (int j = 0; j < 20; j++) {
         for (int i = 0; i < 51; i++) {
-            m_sampleBuffer[bufIndex++] = m_RXBuffMem[0][index] / m_RXfullScale;
-            signalDetected |= m_sampleBuffer[bufIndex] >= 0.015;
             s.real(m_RXBuffMem[0][index++] / m_RXfullScale);
-
-            m_sampleBuffer[bufIndex++] = m_RXBuffMem[0][index] / m_RXfullScale;
-            signalDetected |= m_sampleBuffer[bufIndex] >= 0.015;
             s.imag(m_RXBuffMem[0][index++] / m_RXfullScale);
 
+            // FM Demodulate
             freqdem_demodulate(m_fdem, s, &outBuffer[j*51+i]);
+
+            // Low-Pass filter
             firfilt_rrrf_push(m_low_pass_filter_obj, outBuffer[j * 51 + i]);    // push input sample
             firfilt_rrrf_execute(m_low_pass_filter_obj, &outBufferFiltered[j]); // compute output
-            if (signalDetected || record) {
-           //     myfile.write(reinterpret_cast<char *>(&outBufferFiltered[j * 51 + i]), sizeof(float));
-            }
         }
-        //if (signalDetected || record) {
-        //    myfile.write(reinterpret_cast<char *>(&outBufferFiltered[j]), sizeof(float));
+    }
+
+    // RRC Filter
+    firfilt_rrrf_execute_block(m_rrc_filt_filter_obj, outBufferFiltered, 20, outBufferRRC);
+}
+
+bool processSample(float sample)
+{
+    m_bitBuffer[m_bitPtr] <<= 1;
+    if (sample < 0)
+        m_bitBuffer[m_bitPtr] |= 0x01U;
+
+    m_buffer[m_dataPtr] = sample;
+
+    if (liquid_count_ones((m_bitBuffer[m_bitPtr] & DMR_SYNC_SYMBOLS_MASK) ^ DMR_MS_VOICE_SYNC_SYMBOLS) <= MAX_SYNC_SYMBOLS_ERRS) {
+        std::cout << "Sync gefunden" << std::endl;
+        return true;
+        //uint16_t ptr = m_dataPtr + DMR_FRAME_LENGTH_SAMPLES - DMR_SYNC_LENGTH_SAMPLES + DMR_RADIO_SYMBOL_LENGTH;
+        //if (ptr >= DMR_FRAME_LENGTH_SAMPLES)
+        //    ptr -= DMR_FRAME_LENGTH_SAMPLES;
+
+        //q31_t corr = 0;
+        //float max = -16000;
+        //float min = 16000;
+
+        //for (uint8_t i = 0U; i < DMR_SYNC_LENGTH_SYMBOLS; i++) {
+        //    float val = m_buffer[ptr];
+
+        //    if (val > max)
+        //        max = val;
+        //    if (val < min)
+        //        min = val;
+
+        //    switch (DMR_MS_DATA_SYNC_SYMBOLS_VALUES[i]) {
+        //    case +3:
+        //        corr -= (val + val + val);
+        //        break;
+        //    case +1:
+        //        corr -= val;
+        //        break;
+        //    case -1:
+        //        corr += val;
+        //        break;
+        //    default:  // -3
+        //        corr += (val + val + val);
+        //        break;
+        //    }
+
+        //    ptr += DMR_RADIO_SYMBOL_LENGTH;
+        //    if (ptr >= DMR_FRAME_LENGTH_SAMPLES)
+        //        ptr -= DMR_FRAME_LENGTH_SAMPLES;
+        //}
+
+        //if (corr > m_maxCorr) {
+        //    q15_t centre = (max + min) >> 1;
+
+        //    q31_t v1 = (max - centre) * SCALING_FACTOR;
+        //    q15_t threshold = q15_t(v1 >> 15);
+
+        //    uint8_t sync[DMR_SYNC_BYTES_LENGTH];
+
+        //    uint16_t ptr = m_dataPtr + DMR_FRAME_LENGTH_SAMPLES - DMR_SYNC_LENGTH_SAMPLES + DMR_RADIO_SYMBOL_LENGTH;
+        //    if (ptr >= DMR_FRAME_LENGTH_SAMPLES)
+        //        ptr -= DMR_FRAME_LENGTH_SAMPLES;
+
+        //    samplesToBits(ptr, DMR_SYNC_LENGTH_SYMBOLS, sync, 4U, centre, threshold);
+
+        //    uint8_t errs = 0U;
+        //    for (uint8_t i = 0U; i < DMR_SYNC_BYTES_LENGTH; i++)
+        //        errs += countBits8((sync[i] & DMR_SYNC_BYTES_MASK[i]) ^ DMR_MS_DATA_SYNC_BYTES[i]);
+
+        //    if (errs <= MAX_SYNC_BYTES_ERRS) {
+        //        DEBUG3("DMRIdleRX: data sync found centre/threshold", centre, threshold);
+        //        m_maxCorr = corr;
+        //        m_centre = centre;
+        //        m_threshold = threshold;
+
+        //        m_endPtr = m_dataPtr + DMR_SLOT_TYPE_LENGTH_SAMPLES / 2U + DMR_INFO_LENGTH_SAMPLES / 2U - 1U;
+        //        if (m_endPtr >= DMR_FRAME_LENGTH_SAMPLES)
+        //            m_endPtr -= DMR_FRAME_LENGTH_SAMPLES;
+        //    }
         //}
     }
 
-    firfilt_rrrf_execute_block(m_rrc_filt_filter_obj, outBufferFiltered, 20, outBufferRRC);
+    //if (m_dataPtr == m_endPtr) {
+    //    uint16_t ptr = m_endPtr + DMR_RADIO_SYMBOL_LENGTH + 1U;
+    //    if (ptr >= DMR_FRAME_LENGTH_SAMPLES)
+    //        ptr -= DMR_FRAME_LENGTH_SAMPLES;
 
-    if (signalDetected || record) {
-        for (int j = 0; j < 20; j++) {
-	    myfile.write(reinterpret_cast<char *>(&outBufferRRC[j]), sizeof(float));
-	}
-    }
-    return signalDetected;
+    //    uint8_t frame[DMR_FRAME_LENGTH_BYTES + 1U];
+    //    samplesToBits(ptr, DMR_FRAME_LENGTH_SYMBOLS, frame, 8U, m_centre, m_threshold);
+
+    //    uint8_t colorCode;
+    //    uint8_t dataType;
+    //    CDMRSlotType slotType;
+    //    slotType.decode(frame + 1U, colorCode, dataType);
+
+    //    if (colorCode == m_colorCode && dataType == DT_CSBK) {
+    //        frame[0U] = CONTROL_IDLE | CONTROL_DATA | DT_CSBK;
+    //        serial.writeDMRData(false, frame, DMR_FRAME_LENGTH_BYTES + 1U);
+    //    }
+
+    //    m_endPtr = NOENDPTR;
+    //    m_maxCorr = 0;
+    //}
+
+    m_dataPtr++;
+    if (m_dataPtr >= DMR_FRAME_LENGTH_SAMPLES)
+        m_dataPtr = 0U;
+
+    m_bitPtr++;
+    if (m_bitPtr >= DMR_RADIO_SYMBOL_LENGTH)
+        m_bitPtr = 0U;
+
+    return false;
 }
